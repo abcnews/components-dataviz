@@ -89,9 +89,6 @@
 	}
 	table {
 		border-collapse: collapse;
-		font:
-			12px system-ui,
-			sans-serif;
 	}
 	th,
 	td {
@@ -103,7 +100,6 @@
 		text-align: left;
 	}
 	.size {
-		color: #888;
 		font-weight: normal;
 	}
 </style>

@@ -65,5 +65,8 @@
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@abcnews/components-storylab": "^0.4.0"
 	}
 }
