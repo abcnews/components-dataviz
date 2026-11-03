@@ -22,6 +22,8 @@
 		class?: string;
 		/** Any CSS colour, applied to the SVG markup by generateIcon(). Replaces the accent colour only (the light halo is kept). Defaults to the artwork's own colour. */
 		color?: string;
+		/** Dark mode: draws the halo outline in black instead of the light default. */
+		dark?: boolean;
 	}
 
 	let {
@@ -30,14 +32,15 @@
 		variant = 'stroked',
 		label,
 		class: className = '',
-		color
+		color,
+		dark = false
 	}: Props = $props();
 
 	// generateIcon throws on unknown names / missing variants / widths that are too small.
 	// Don't take down the whole page for a bad icon: log and render nothing.
 	const svg = $derived.by(() => {
 		try {
-			return generateIcon({ name, width, variant, color });
+			return generateIcon({ name, width, variant, color, dark });
 		} catch (err) {
 			console.error(`[Icon] ${err instanceof Error ? err.message : err}`);
 			return '';

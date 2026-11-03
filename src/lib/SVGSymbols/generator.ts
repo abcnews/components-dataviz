@@ -6,6 +6,9 @@
  * at any width. It has no Vite dependency; src/icons/icons.ts wires it up to
  * Vite's import.meta.glob.
  *
+ * It needs a browser DOM (DOMParser, XMLSerializer, document.createElementNS), so
+ * it must only be called client-side.
+ *
  * How a request is resolved
  * -------------------------
  * Every icon style has one or more "tiers" (bespoke size steps, 0 = smallest).
@@ -17,7 +20,10 @@
  *   3. Only the geometry is scaled. Stroke widths stay exactly as designed, so the
  *      result is: width = scaled geometry + fixed stroke thickness.
  *   4. If `color` is given it replaces the accent fill/stroke in the markup (the #F5F5F5 halo is kept).
- *   5. Coordinates are baked into px space (1 unit = 1px), so strokes are correct
+ *      If `dark` is true the halo becomes #000000 instead.
+ *   5. Paths painted with the accent get the class "fill"; paths painted with the halo
+ *      get the class "border".
+ *   6. Coordinates are baked into px space (1 unit = 1px), so strokes are correct
  *      in every renderer. Strokes also carry vector-effect="non-scaling-stroke",
  *      so they stay constant if the SVG is later resized with CSS.
  */
@@ -30,7 +36,7 @@ import {
 	unionBounds,
 	type Bounds,
 	type Seg
-} from './path.ts';
+} from './path';
 
 export type IconStyle = 'filled' | 'stroked';
 
@@ -44,9 +50,11 @@ export interface IconRequest {
 	/**
 	 * Any CSS colour (hex, rgb(), hsl(), oklch(), named…). Written straight into the
 	 * SVG's fill / stroke attributes, so it works with or without Svelte.
-	 * Replaces the accent colour only; the light halo outline is kept. Omit to keep the artwork's own colour.
+	 * Replaces the accent colour only; the halo outline is kept. Omit to keep the artwork's own colour.
 	 */
 	color?: string;
+	/** Dark mode: the halo outline is drawn in #000000 instead of the light default. */
+	dark?: boolean;
 }
 
 /** One bespoke size step of an icon style. */
@@ -59,11 +67,16 @@ export interface TierInfo {
 /** Raw icon files keyed by path, e.g. { "./svg/doughnut/stroked-2.svg": "<svg…" }. */
 export type RawIconFiles = Record<string, string>;
 
+/** An SVG attribute as a [name, value] pair. */
+type Attribute = [name: string, value: string];
+
 interface Layer {
-	segs: Seg[];
+	segments: Seg[];
 	/** Every attribute except `d`, in file order. */
-	attrs: [string, string][];
+	attributes: Attribute[];
 	hasStroke: boolean;
+	/** Stroke thickness in source units; 0 when the layer has no stroke. */
+	strokeWidth: number;
 }
 
 interface Tier {
@@ -72,117 +85,201 @@ interface Tier {
 	/** Geometry bounds (stroke excluded), in source coordinates. */
 	bounds: Bounds;
 	/** Half of the thickest stroke: how far the artwork extends beyond its geometry. */
-	inset: number;
+	strokeInset: number;
 	/** Natural visible width at scale 1: geometry + stroke. */
 	visibleWidth: number;
 }
 
-const FILE_RE = /(?:^|\/)([a-z0-9-]+)\/(filled|stroked)-(\d+)\.svg$/;
-const PATH_RE = /<path\b([^>]*?)\/>/g;
-const ATTR_RE = /([\w:-]+)="([^"]*)"/g;
+type Registry = Map<string, Partial<Record<IconStyle, Tier[]>>>;
+
+const formatNumber = (value: number) => String(Math.round(value * 1000) / 1000);
+
+const boundsWidth = (bounds: Bounds) => bounds.maxX - bounds.minX;
+const boundsHeight = (bounds: Bounds) => bounds.maxY - bounds.minY;
+
+// ---------------------------------------------------------------------------
+// Parsing
+// ---------------------------------------------------------------------------
+
+function parseSvgDocument(svg: string, file: string): Document {
+	const svgDocument = new DOMParser().parseFromString(svg, 'image/svg+xml');
+	const parseError = svgDocument.querySelector('parsererror');
+	if (parseError) throw new Error(`${file}: invalid SVG (${parseError.textContent?.trim()})`);
+	return svgDocument;
+}
+
+function parseLayer(pathElement: Element, file: string): Layer {
+	const pathData = pathElement.getAttribute('d');
+	if (!pathData) throw new Error(`${file}: <path> without "d"`);
+
+	const attributes = Array.from(pathElement.attributes, ({ name, value }): Attribute => [
+		name,
+		value
+	]).filter(([name]) => name !== 'd');
+
+	const stroke = pathElement.getAttribute('stroke');
+	const hasStroke = stroke !== null && stroke !== 'none';
+	const strokeWidth = hasStroke ? Number(pathElement.getAttribute('stroke-width') ?? 1) : 0;
+
+	return { segments: parsePath(pathData), attributes, hasStroke, strokeWidth };
+}
 
 function parseTier(index: number, svg: string, file: string): Tier {
-	const layers: Layer[] = [];
-	let maxStroke = 0;
-
-	for (const m of svg.matchAll(PATH_RE)) {
-		const attrs: [string, string][] = [];
-		let d = '';
-		for (const a of (m[1] ?? '').matchAll(ATTR_RE)) {
-			const key = a[1] as string;
-			const value = a[2] as string;
-			if (key === 'd') d = value;
-			else attrs.push([key, value]);
-		}
-		if (!d) throw new Error(`${file}: <path> without "d"`);
-
-		const get = (key: string) => attrs.find(([k]) => k === key)?.[1];
-		const stroke = get('stroke');
-		const hasStroke = stroke !== undefined && stroke !== 'none';
-		if (hasStroke) maxStroke = Math.max(maxStroke, Number(get('stroke-width') ?? 1));
-
-		layers.push({ segs: parsePath(d), attrs, hasStroke });
-	}
+	const layers = Array.from(parseSvgDocument(svg, file).querySelectorAll('path'), (pathElement) =>
+		parseLayer(pathElement, file)
+	);
 	if (layers.length === 0) throw new Error(`${file}: no <path> elements found`);
 
-	const bounds = unionBounds(layers.map((l) => pathBounds(l.segs)));
-	const inset = maxStroke / 2;
-	return { index, layers, bounds, inset, visibleWidth: bounds.maxX - bounds.minX + 2 * inset };
+	const bounds = unionBounds(layers.map((layer) => pathBounds(layer.segments)));
+	const thickestStroke = Math.max(0, ...layers.map((layer) => layer.strokeWidth));
+	const strokeInset = thickestStroke / 2;
+
+	return {
+		index,
+		layers,
+		bounds,
+		strokeInset,
+		visibleWidth: boundsWidth(bounds) + 2 * strokeInset
+	};
 }
 
-/** Nearest tier by ratio of visible widths. */
-function pickTier(tiers: Tier[], width: number): Tier {
-	let best = tiers[0] as Tier;
-	let bestDistance = Infinity;
-	for (const tier of tiers) {
-		const distance = Math.abs(Math.log(width / tier.visibleWidth));
-		if (distance < bestDistance) {
-			best = tier;
-			bestDistance = distance;
-		}
+function parseIconFilePath(filePath: string) {
+	const ICON_FILE_PATTERN = /(?:^|\/)([a-z0-9-]+)\/(filled|stroked)-(\d+)\.svg$/;
+	const match = ICON_FILE_PATTERN.exec(filePath);
+	if (!match) {
+		throw new Error(
+			`Unexpected icon file "${filePath}". Expected <name>/<filled|stroked>-<tier>.svg`
+		);
 	}
-	return best;
+	const [, name = '', style = '', tierIndex = ''] = match;
+	return { name, style: style as IconStyle, tierIndex: Number(tierIndex) };
 }
 
-const fmt = (v: number) => String(Math.round(v * 1000) / 1000);
-
-/** Attributes that carry paint and are therefore recoloured. */
-const PAINT_ATTRS = new Set(['fill', 'stroke']);
-
-/**
- * The colour ends up inside an attribute of markup that is injected as HTML, so only
- * characters that CSS colour syntax needs are allowed. Quotes and angle brackets can
- * never get through.
- */
-const COLOR_RE = /^[#\w\s().,%/+-]+$/;
-
-function checkColor(color: string): string {
-	const value = color.trim();
-	if (!COLOR_RE.test(value)) throw new RangeError(`Invalid colour "${color}"`);
-	return value;
-}
-
-/**
- * The light outline drawn around the accent so icons stay legible on any background.
- * It is part of the design, so it is never recoloured.
- */
-const HALO_COLOR = '#f5f5f5';
-
-/**
- * Swap in `color` for the accent paint: every fill/stroke except the halo.
- * `none` and gradient/pattern refs are left alone too.
- */
-function recolor(attrs: [string, string][], color: string | undefined): [string, string][] {
-	if (!color) return attrs;
-	return attrs.map(([k, v]) => {
-		const keep =
-			!PAINT_ATTRS.has(k) || v === 'none' || v.startsWith('url(') || v.toLowerCase() === HALO_COLOR;
-		return keep ? [k, v] : [k, color];
+function buildRegistry(files: RawIconFiles): Registry {
+	const parsedTiers = Object.entries(files).map(([filePath, svg]) => {
+		const { name, style, tierIndex } = parseIconFilePath(filePath);
+		return { name, style, tier: parseTier(tierIndex, svg, filePath) };
 	});
-}
 
-export function createIconGenerator(files: RawIconFiles) {
-	const registry = new Map<string, Partial<Record<IconStyle, Tier[]>>>();
-
-	for (const [file, svg] of Object.entries(files)) {
-		const m = FILE_RE.exec(file);
-		if (!m)
-			throw new Error(
-				`Unexpected icon file "${file}". Expected <name>/<filled|stroked>-<tier>.svg`
-			);
-		const name = m[1] as string;
-		const style = m[2] as IconStyle;
-		const index = Number(m[3]);
-
+	const registry: Registry = new Map();
+	for (const { name, style, tier } of parsedTiers) {
 		const styles = registry.get(name) ?? {};
-		const tiers = styles[style] ?? [];
-		if (tiers.some((t) => t.index === index))
-			throw new Error(`Duplicate icon file for ${name}/${style}-${index}`);
-		tiers.push(parseTier(index, svg, file));
-		tiers.sort((a, b) => a.index - b.index);
-		styles[style] = tiers;
+		const existingTiers = styles[style] ?? [];
+		if (existingTiers.some((existing) => existing.index === tier.index)) {
+			throw new Error(`Duplicate icon file for ${name}/${style}-${tier.index}`);
+		}
+		styles[style] = [...existingTiers, tier].sort((a, b) => a.index - b.index);
 		registry.set(name, styles);
 	}
+	return registry;
+}
+
+// ---------------------------------------------------------------------------
+// Rendering helpers
+// ---------------------------------------------------------------------------
+
+/** The tier whose visible width is closest to `width`, compared as a ratio. */
+function pickClosestTier(tiers: Tier[], width: number): Tier {
+	const distanceFromWidth = (tier: Tier) => Math.abs(Math.log(width / tier.visibleWidth));
+	return tiers.reduce((closest, tier) =>
+		distanceFromWidth(tier) < distanceFromWidth(closest) ? tier : closest
+	);
+}
+
+function validateColor(color: string): string {
+	/**
+	 * Only characters that CSS colour syntax needs. Attribute values are escaped by the
+	 * XML serializer, so this isn't what keeps the markup safe; it makes nonsense input
+	 * fail loudly instead of producing a broken icon.
+	 */
+	const CSS_COLOR_PATTERN = /^[#\w\s().,%/+-]+$/;
+
+	const trimmed = color.trim();
+	if (!CSS_COLOR_PATTERN.test(trimmed)) throw new RangeError(`Invalid colour "${color}"`);
+	return trimmed;
+}
+
+/**
+ * Recolours a layer's paint and tags it with its role:
+ *  - accent paint (every fill/stroke except the halo) is replaced by `color`, and the
+ *    layer gets the class "fill".
+ *  - halo paint (the light outline that keeps icons legible on any background) becomes
+ *    black in dark mode, and the layer gets the class "border".
+ * `none` and gradient/pattern refs are left alone.
+ */
+function applyPaint(
+	attributes: Attribute[],
+	color: string | undefined,
+	dark: boolean
+): Attribute[] {
+	const PAINT_ATTRIBUTES = new Set(['fill', 'stroke']);
+	const LIGHT_HALO_COLOR = '#f5f5f5';
+	const DARK_HALO_COLOR = '#000000';
+
+	const paintRole = ([name, value]: Attribute): 'halo' | 'accent' | undefined => {
+		if (!PAINT_ATTRIBUTES.has(name) || value === 'none' || value.startsWith('url('))
+			return undefined;
+		return value.toLowerCase() === LIGHT_HALO_COLOR ? 'halo' : 'accent';
+	};
+
+	const roles = attributes.map(paintRole);
+
+	const painted = attributes.map((attribute, index): Attribute => {
+		const [name] = attribute;
+		if (roles[index] === 'accent' && color) return [name, color];
+		if (roles[index] === 'halo' && dark) return [name, DARK_HALO_COLOR];
+		return attribute;
+	});
+
+	const classNames: string[] = [];
+	if (roles.includes('accent')) classNames.push('fill');
+	if (roles.includes('halo')) classNames.push('border');
+
+	return classNames.length > 0 ? [...painted, ['class', classNames.join(' ')]] : painted;
+}
+
+function createSvgElement<Tag extends keyof SVGElementTagNameMap>(
+	tagName: Tag,
+	attributes: Attribute[]
+): SVGElementTagNameMap[Tag] {
+	const element = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+	attributes.forEach(([name, value]) => element.setAttribute(name, value));
+	return element;
+}
+
+/** Builds one <path>, with its geometry scaled into output pixel space. */
+function renderLayer(
+	layer: Layer,
+	tier: Tier,
+	scale: number,
+	color: string | undefined,
+	dark: boolean
+): SVGPathElement {
+	const { bounds, strokeInset } = tier;
+
+	const toOutputSpace = (x: number, y: number): [number, number] => [
+		(x - bounds.minX) * scale + strokeInset,
+		(y - bounds.minY) * scale + strokeInset
+	];
+
+	const pathData = serializePath(mapPoints(layer.segments, toOutputSpace), 3);
+	const strokeBehaviour: Attribute[] = layer.hasStroke
+		? [['vector-effect', 'non-scaling-stroke']]
+		: [];
+
+	return createSvgElement('path', [
+		['d', pathData],
+		...applyPaint(layer.attributes, color, dark),
+		...strokeBehaviour
+	]);
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export function createIconGenerator(files: RawIconFiles) {
+	const registry = buildRegistry(files);
 
 	function listIcons(): string[] {
 		return [...registry.keys()].sort();
@@ -192,10 +289,10 @@ export function createIconGenerator(files: RawIconFiles) {
 	function listTiers(name: string, variant: IconStyle): TierInfo[] {
 		const tiers = registry.get(name)?.[variant];
 		if (!tiers) throw new Error(`Icon "${name}" has no "${variant}" variant`);
-		return tiers.map((t) => ({ tier: t.index, width: t.visibleWidth }));
+		return tiers.map((tier) => ({ tier: tier.index, width: tier.visibleWidth }));
 	}
 
-	function generateIcon({ name, width, variant, color }: IconRequest): string {
+	function requireTiers(name: string, variant: IconStyle): Tier[] {
 		const styles = registry.get(name);
 		if (!styles) throw new Error(`Unknown icon "${name}". Available: ${listIcons().join(', ')}`);
 
@@ -205,44 +302,42 @@ export function createIconGenerator(files: RawIconFiles) {
 				`Icon "${name}" has no "${variant}" variant (available: ${Object.keys(styles).join(', ')})`
 			);
 		}
-		if (!Number.isFinite(width) || width <= 0)
+		return tiers;
+	}
+
+	function generateIcon({ name, width, variant, color, dark = false }: IconRequest): string {
+		const tiers = requireTiers(name, variant);
+		if (!Number.isFinite(width) || width <= 0) {
 			throw new RangeError(`width must be a positive number, got ${width}`);
+		}
+		const validatedColor = color ? validateColor(color) : undefined;
 
-		const paint = color ? checkColor(color) : undefined;
+		const tier = pickClosestTier(tiers, width);
+		const geometryWidth = boundsWidth(tier.bounds);
+		const geometryHeight = boundsHeight(tier.bounds);
 
-		const tier = pickTier(tiers, width);
-		const { bounds, inset } = tier;
-		const geometryWidth = bounds.maxX - bounds.minX;
-		const geometryHeight = bounds.maxY - bounds.minY;
-
-		const artWidth = width - 2 * inset;
-		if (artWidth <= 0 || geometryWidth <= 0) {
+		const artworkWidth = width - 2 * tier.strokeInset;
+		if (artworkWidth <= 0 || geometryWidth <= 0) {
 			throw new RangeError(
-				`width ${width}px is too small for ${name}/${variant}: its strokes alone need ${fmt(2 * inset)}px`
+				`width ${width}px is too small for ${name}/${variant}: its strokes alone need ${formatNumber(2 * tier.strokeInset)}px`
 			);
 		}
 
-		const scale = artWidth / geometryWidth;
-		const height = geometryHeight * scale + 2 * inset;
+		const scale = artworkWidth / geometryWidth;
+		const height = geometryHeight * scale + 2 * tier.strokeInset;
 
-		const paths = tier.layers.map((layer) => {
-			const d = serializePath(
-				mapPoints(layer.segs, (x, y) => [
-					(x - bounds.minX) * scale + inset,
-					(y - bounds.minY) * scale + inset
-				]),
-				3
-			);
-			const attrs = recolor(layer.attrs, paint).map(([k, v]) => `${k}="${v}"`);
-			if (layer.hasStroke) attrs.push('vector-effect="non-scaling-stroke"');
-			return `  <path d="${d}" ${attrs.join(' ')}/>`;
-		});
+		const svgElement = createSvgElement('svg', [
+			['width', formatNumber(width)],
+			['height', formatNumber(height)],
+			['viewBox', `0 0 ${formatNumber(width)} ${formatNumber(height)}`],
+			['fill', 'none'],
+			['overflow', 'visible']
+		]);
+		svgElement.append(
+			...tier.layers.map((layer) => renderLayer(layer, tier, scale, validatedColor, dark))
+		);
 
-		return [
-			`<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(width)}" height="${fmt(height)}" viewBox="0 0 ${fmt(width)} ${fmt(height)}" fill="none" overflow="visible">`,
-			...paths,
-			'</svg>'
-		].join('\n');
+		return new XMLSerializer().serializeToString(svgElement);
 	}
 
 	return { generateIcon, listIcons, listTiers };

@@ -20,7 +20,7 @@
 		title: 'Icons/Icon',
 		component: Icon,
 		tags: ['autodocs'],
-		args: { name: names[0] ?? '', width: 32, variant: 'stroked', color: '#1a1a1a' },
+		args: { name: names[0] ?? '', width: 32, variant: 'stroked', color: '#1a1a1a', dark: false },
 		argTypes: {
 			name: { control: 'select', options: names },
 			width: { control: { type: 'range', min: 4, max: 160, step: 1 } },
@@ -30,6 +30,11 @@
 				description:
 					'Passed to generateIcon(), which writes it into the SVG fill/stroke attributes. Works the same outside Svelte.'
 			},
+			dark: {
+				control: 'boolean',
+				description:
+					'Draws the halo outline in black instead of the light default. Pair with a dark background.'
+			},
 			label: { control: 'text' },
 			class: { control: false }
 		}
@@ -38,48 +43,65 @@
 
 <Story name="Playground" />
 
-<Story name="All icons" parameters={{ controls: { include: ['color'] } }}>
-	{#snippet template(args)}
-		<table>
-			<thead>
-				<tr>
-					<th></th>
-					{#each variants as variant}
-						<th colspan={sizes.length}>{variant}</th>
+{#snippet iconTable(color: string | undefined, dark: boolean)}
+	<table>
+		<thead>
+			<tr>
+				<th></th>
+				{#each variants as variant}
+					<th colspan={sizes.length}>{variant}</th>
+				{/each}
+			</tr>
+			<tr>
+				<th></th>
+				{#each variants as variant}
+					{#each sizes as size}
+						<th class="size">{size}</th>
 					{/each}
-				</tr>
+				{/each}
+			</tr>
+		</thead>
+		<tbody>
+			{#each names as name (name)}
 				<tr>
-					<th></th>
+					<th scope="row"><code>{name}</code></th>
 					{#each variants as variant}
 						{#each sizes as size}
-							<th class="size">{size}</th>
+							<td>
+								{#if has(name, variant)}
+									<Icon
+										{name}
+										width={size}
+										{variant}
+										{color}
+										{dark}
+										label="{name} {variant} {size}px"
+									/>
+								{/if}
+							</td>
 						{/each}
 					{/each}
 				</tr>
-			</thead>
-			<tbody>
-				{#each names as name (name)}
-					<tr>
-						<th scope="row"><code>{name}</code></th>
-						{#each variants as variant}
-							{#each sizes as size}
-								<td>
-									{#if has(name, variant)}
-										<Icon
-											{name}
-											width={size}
-											{variant}
-											color={args.color}
-											label="{name} {variant} {size}px"
-										/>
-									{/if}
-								</td>
-							{/each}
-						{/each}
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+			{/each}
+		</tbody>
+	</table>
+{/snippet}
+
+<Story name="All icons" parameters={{ controls: { include: ['color'] } }}>
+	{#snippet template(args)}
+		{@render iconTable(args.color, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Dark mode"
+	args={{ color: '#e8eef0' }}
+	parameters={{ controls: { include: ['color'] } }}
+>
+	{#snippet template(args)}
+		<div class="dark-surface">
+			{@render iconTable(args.color, true)}
+		</div>
 	{/snippet}
 </Story>
 
@@ -98,6 +120,15 @@
 	}
 	th[scope='row'] {
 		text-align: left;
+	}
+	.dark-surface {
+		background: #161c1e;
+		color: #e8eef0;
+		padding: 16px;
+	}
+	.dark-surface th,
+	.dark-surface td {
+		border-bottom-color: #2a3336;
 	}
 	.size {
 		font-weight: normal;
