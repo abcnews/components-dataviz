@@ -62,6 +62,7 @@
 		tags: ['autodocs'],
 		args: {
 			text: 'Annotation',
+			variant: 'filled',
 			anchor: 'bottom-left',
 			offset: 10,
 			pointer: 'bottom-left',
@@ -70,6 +71,12 @@
 		},
 		argTypes: {
 			text: { control: 'text' },
+			variant: {
+				control: 'select',
+				options: ['filled', 'outline'],
+				description:
+					'`filled` is a padded label with a background. `outline` has no background or padding: just text with a border (white on light mode, black on dark mode).'
+			},
 			anchor: {
 				control: 'select',
 				options: anchors,
@@ -84,20 +91,22 @@
 			pointer: {
 				control: 'select',
 				options: pointers,
-				description: 'Which corner is squared off to act as the arrow, or `none`.'
+				description: 'Which corner is squared off to act as the arrow, or `none`. Filled only.'
 			},
 			fill: {
 				control: 'color',
-				description: 'Overrides --annotation-fill for this instance.'
+				description: 'Overrides --annotation-fill for this instance. Filled only.'
 			},
 			stroke: {
 				control: 'color',
-				description: 'Overrides --annotation-stroke for this instance.'
+				description:
+					'Overrides --annotation-stroke (or --annotation-outline-stroke for `outline`) for this instance.'
 			},
 			strokeWidth: { control: { type: 'range', min: 0, max: 6, step: 0.5 } },
 			color: {
 				control: 'color',
-				description: 'Text colour. Overrides --annotation-text for this instance.'
+				description:
+					'Text colour. Overrides --annotation-text (or --annotation-outline-text for `outline`) for this instance.'
 			},
 			bold: { control: 'boolean' },
 			children: { control: false },
@@ -108,7 +117,7 @@
 </script>
 
 {#snippet playground(args, dark: boolean)}
-	<div class="stage" class:dark>
+	<div class="stage" class:dark class:split={args.variant === 'outline'}>
 		<!-- Zero-size spot at the stage centre; the story places the annotation here -->
 		<div class="point">
 			<span class="marker">
@@ -128,6 +137,8 @@
 					<th scope="col">Text</th>
 					<th scope="col">Regular</th>
 					<th scope="col">Bold</th>
+					<th scope="col">Outline</th>
+					<th scope="col">Outline Bold</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -141,10 +152,59 @@
 						<td>
 							<Annotation text={args.text} pointer={args.pointer} {fill} color={text} bold />
 						</td>
+						{#if (dark && text === '#000000') || (!dark && text === '#FFFFFF')}
+							<td></td><td></td>
+						{:else}
+							<td>
+								<Annotation
+									text={args.text}
+									pointer={args.pointer}
+									{fill}
+									color={text}
+									variant="outline"
+								/>
+							</td>
+							<td>
+								<Annotation
+									text={args.text}
+									pointer={args.pointer}
+									{fill}
+									color={text}
+									bold
+									variant="outline"
+								/>
+							</td>
+						{/if}
 					</tr>
 				{/each}
 			</tbody>
 		</table>
+	</div>
+{/snippet}
+
+{#snippet outlineOverrides(args, dark: boolean)}
+	<div class="stage split" class:dark>
+		<div class="row" style="top: 40px">
+			<Annotation variant="outline" text="Default" anchor="center" strokeWidth={args.strokeWidth} />
+		</div>
+		<div class="row" style="top: 90px">
+			<Annotation
+				variant="outline"
+				text="Props: blue text, red border"
+				anchor="center"
+				color={dark ? darkBlue : blue}
+				stroke={dark ? darkRed : red}
+				strokeWidth={args.strokeWidth}
+			/>
+		</div>
+		<div
+			class="row"
+			style="top: 140px; --annotation-outline-text: {dark
+				? darkRed
+				: red}; --annotation-outline-stroke: {dark ? white : black}"
+		>
+			<Annotation variant="outline" text="CSS variables on an ancestor" anchor="center" bold />
+		</div>
 	</div>
 {/snippet}
 
@@ -161,6 +221,45 @@
 >
 	{#snippet template(args)}
 		{@render playground(args, true)}
+	{/snippet}
+</Story>
+
+<Story name="Outline" args={{ variant: 'outline', strokeWidth: 2 }}>
+	{#snippet template(args)}
+		{@render playground(args, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Outline (dark)"
+	args={{ variant: 'outline', strokeWidth: 2 }}
+	parameters={{ backgrounds: { default: 'dark' } }}
+>
+	{#snippet template(args)}
+		{@render playground(args, true)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Outline overrides"
+	args={{ strokeWidth: 2 }}
+	parameters={{ controls: { include: ['strokeWidth'] } }}
+>
+	{#snippet template(args)}
+		{@render outlineOverrides(args, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Outline overrides (dark)"
+	args={{ strokeWidth: 2 }}
+	parameters={{
+		controls: { include: ['strokeWidth'] },
+		backgrounds: { default: 'dark' }
+	}}
+>
+	{#snippet template(args)}
+		{@render outlineOverrides(args, true)}
 	{/snippet}
 </Story>
 
@@ -207,6 +306,12 @@
 		line-height: 0;
 		transform: translate(-50%, -50%);
 		pointer-events: none;
+	}
+	.row {
+		position: absolute;
+		left: 200px;
+		width: 0;
+		height: 0;
 	}
 	.surface {
 		display: inline-block;
