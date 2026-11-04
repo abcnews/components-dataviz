@@ -25,6 +25,13 @@
 	const darkBlue = '#6696FF';
 	const darkRed = '#FF667B';
 
+	/** Storybook's toolbar sets this global; the same value ends up on <html data-scheme>. */
+	const isDark = (context: { globals: Record<string, unknown> }) => context.globals.scheme === 'dark';
+
+	/** Filled annotations have no scheme-aware defaults, so the dark scheme gets the Figma dark set. */
+	const withSchemeColours = (args: Record<string, unknown>, dark: boolean) =>
+		dark ? { fill: black, color: white, stroke: black, ...args } : args;
+
 	// White fill with coloured text, then white text on coloured fills.
 	const combos = [
 		{ fill: white, text: black },
@@ -145,29 +152,53 @@
 </script>
 
 {#snippet playground(args, dark: boolean)}
-	<div class="stage" class:dark class:split={args.variant === 'outline'}>
+	<div class="stage" class:split={args.variant === 'outline'}>
 		<!-- Zero-size spot at the stage centre; the story places the annotation here -->
 		<div class="point">
 			<span class="marker">
-				<Icon name="circle" variant="filled" width={12} color={dark ? darkRed : red} {dark} />
+				<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 			</span>
-			<Annotation {...args} />
+			<Annotation {...withSchemeColours(args, dark)} />
 		</div>
 	</div>
 {/snippet}
 
 {#snippet placed(args, dark: boolean)}
-	<div class="stage" class:dark class:split={args.variant === 'outline'}>
+	<div class="stage" class:split={args.variant === 'outline'}>
 		<!-- No point wrapper: x / y place the annotation against the stage -->
 		<span class="marker" style="left:{px(args.x)};top:{px(args.y)}">
-			<Icon name="circle" variant="filled" width={12} color={dark ? darkRed : red} {dark} />
+			<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 		</span>
-		<Annotation {...args} />
+		<Annotation {...withSchemeColours(args, dark)} />
+	</div>
+{/snippet}
+
+{#snippet anchorGrid(args, dark: boolean)}
+	<div class="surface">
+		<div class="grid">
+			{#each anchors as anchor (anchor)}
+				<div class="cell">
+					<code class="cell-label">{anchor}</code>
+					<div class="point">
+						<Annotation {...withSchemeColours(args, dark)} {anchor} offset={8} />
+						<span class="marker">
+							<Icon
+								name="circle"
+								variant="filled"
+								width={8}
+								colour={dark ? darkRed : red}
+								scheme={dark ? 'dark' : 'light'}
+							/>
+						</span>
+					</div>
+				</div>
+			{/each}
+		</div>
 	</div>
 {/snippet}
 
 {#snippet colours(args, rows: { fill: string; text: string }[], dark: boolean)}
-	<div class="surface" class:dark>
+	<div class="surface">
 		<table>
 			<thead>
 				<tr>
@@ -256,7 +287,7 @@
 {/snippet}
 
 {#snippet outlineOverrides(args, dark: boolean)}
-	<div class="stage split" class:dark>
+	<div class="stage split">
 		<div class="row" style="top: 40px">
 			<Annotation variant="outline" text="Default" anchor="center" />
 		</div>
@@ -281,34 +312,14 @@
 {/snippet}
 
 <Story name="Playground">
-	{#snippet template(args)}
-		{@render playground(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Playground (dark)"
-	args={{ fill: black, color: white, stroke: black }}
-	parameters={{ backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render playground(args, true)}
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
 	{/snippet}
 </Story>
 
 <Story name="Outline" args={{ variant: 'outline' }}>
-	{#snippet template(args)}
-		{@render playground(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Outline (dark)"
-	args={{ variant: 'outline' }}
-	parameters={{ backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render playground(args, true)}
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -316,24 +327,8 @@
 	name="Multiline"
 	args={{ text: multilineText, maxWidth: multilineWidth, anchor: 'bottom-left' }}
 >
-	{#snippet template(args)}
-		{@render playground(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Multiline (dark)"
-	args={{
-		text: multilineText,
-		maxWidth: multilineWidth,
-		fill: black,
-		color: white,
-		stroke: black
-	}}
-	parameters={{ backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render playground(args, true)}
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -341,18 +336,8 @@
 	name="Multiline outline"
 	args={{ text: multilineText, maxWidth: multilineWidth, variant: 'outline' }}
 >
-	{#snippet template(args)}
-		{@render playground(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Multiline outline (dark)"
-	args={{ text: multilineText, maxWidth: multilineWidth, variant: 'outline' }}
-	parameters={{ backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render playground(args, true)}
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -360,24 +345,14 @@
 	name="Gooey"
 	args={{ text: multilineText, maxWidth: multilineWidth, gooey: true, anchor: 'bottom-left' }}
 >
-	{#snippet template(args)}
-		{@render playground(args, false)}
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
 	{/snippet}
 </Story>
 
-<Story
-	name="Gooey (dark)"
-	args={{
-		text: multilineText,
-		maxWidth: multilineWidth,
-		gooey: true,
-		fill: black,
-		color: white
-	}}
-	parameters={{ backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render playground(args, true)}
+<Story name="Anchors" parameters={{ controls: { include: ['text', 'variant', 'pointer', 'bold'] } }}>
+	{#snippet template(args, context)}
+		{@render anchorGrid(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -386,54 +361,20 @@
 	args={{ x: 120, y: 90, anchor: 'bottom-left' }}
 	parameters={{ controls: { exclude: [] } }}
 >
-	{#snippet template(args)}
-		{@render placed(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Placed (dark)"
-	args={{ x: 120, y: 90, anchor: 'bottom-left', fill: black, color: white, stroke: black }}
-	parameters={{ controls: { exclude: [] }, backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render placed(args, true)}
+	{#snippet template(args, context)}
+		{@render placed(args, isDark(context))}
 	{/snippet}
 </Story>
 
 <Story name="Outline overrides" parameters={{ controls: { disable: true } }}>
-	{#snippet template(args)}
-		{@render outlineOverrides(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Outline overrides (dark)"
-	parameters={{
-		controls: { disable: true },
-		backgrounds: { default: 'dark' }
-	}}
->
-	{#snippet template(args)}
-		{@render outlineOverrides(args, true)}
+	{#snippet template(args, context)}
+		{@render outlineOverrides(args, isDark(context))}
 	{/snippet}
 </Story>
 
 <Story name="Colours" parameters={{ controls: { include: ['text', 'pointer'] } }}>
-	{#snippet template(args)}
-		{@render colours(args, combos, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Colours (dark)"
-	parameters={{
-		controls: { include: ['text', 'pointer'] },
-		backgrounds: { default: 'dark' }
-	}}
->
-	{#snippet template(args)}
-		{@render colours(args, darkCombos, true)}
+	{#snippet template(args, context)}
+		{@render colours(args, isDark(context) ? darkCombos : combos, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -445,7 +386,7 @@
 		background: #c8d6ea;
 		overflow: hidden;
 	}
-	.stage.dark {
+	:global([data-scheme='dark']) .stage {
 		background: #161c1e;
 	}
 	.point {
@@ -463,6 +404,29 @@
 		transform: translate(-50%, -50%);
 		pointer-events: none;
 	}
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(3, 160px);
+		gap: 12px;
+	}
+	.cell {
+		position: relative;
+		height: 110px;
+		background: rgba(255, 255, 255, 0.35);
+	}
+	:global([data-scheme='dark']) .surface .cell {
+		background: rgba(255, 255, 255, 0.06);
+	}
+	.cell .point {
+		left: 80px;
+		top: 55px;
+	}
+	.cell-label {
+		position: absolute;
+		left: 6px;
+		top: 4px;
+		font-size: 11px;
+	}
 	.row {
 		position: absolute;
 		left: 200px;
@@ -474,12 +438,12 @@
 		background: #c8d6ea;
 		padding: 16px;
 	}
-	.surface.dark {
+	:global([data-scheme='dark']) .surface {
 		background: #161c1e;
 		color: #e8eef0;
 	}
-	.surface.dark th,
-	.surface.dark td {
+	:global([data-scheme='dark']) .surface th,
+	:global([data-scheme='dark']) .surface td {
 		border-bottom-color: #2a3336;
 	}
 	table {

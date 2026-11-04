@@ -83,23 +83,12 @@
 {/snippet}
 
 <Story name="All icons" parameters={{ controls: { include: ['colour'] } }}>
-	{#snippet template(args)}
-		{@render iconTable(args.colour, 'light')}
-	{/snippet}
-</Story>
-
-<Story name="Dark mode" parameters={{ controls: { include: ['colour'] } }}>
-	{#snippet template(args)}
-		<div class="dark-surface">
-			{@render iconTable(args.colour, 'dark')}
-		</div>
+	{#snippet template(args, context)}
+		{@render iconTable(args.colour, context.globals.scheme === 'dark' ? 'dark' : 'light')}
 	{/snippet}
 </Story>
 
 <style>
-	:global(body) {
-		background: #c8d6ea;
-	}
 	table {
 		border-collapse: collapse;
 	}
@@ -109,17 +98,11 @@
 		text-align: center;
 		border-bottom: 1px solid #eee;
 	}
+	:global([data-scheme='dark']) :is(th, td) {
+		border-bottom-color: #2a3336;
+	}
 	th[scope='row'] {
 		text-align: left;
-	}
-	.dark-surface {
-		background: #161c1e;
-		color: #e8eef0;
-		padding: 16px;
-	}
-	.dark-surface th,
-	.dark-surface td {
-		border-bottom-color: #2a3336;
 	}
 	.size {
 		font-weight: normal;

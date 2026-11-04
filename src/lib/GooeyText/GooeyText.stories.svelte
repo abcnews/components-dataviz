@@ -6,6 +6,13 @@
 
 	const sample = 'A longer annotation that wraps onto several lines of different lengths';
 
+	/** Storybook's toolbar sets this global; the same value ends up on <html data-scheme>. */
+	const isDark = (context: { globals: Record<string, unknown> }) => context.globals.scheme === 'dark';
+
+	/** GooeyText has no scheme-aware fill, so dark gets a black fill unless the `fill` control is set. */
+	const withSchemeFill = (args: Record<string, unknown>, dark: boolean) =>
+		dark ? { fill: '#000000', ...args } : args;
+
 	const { Story } = defineMeta({
 		title: 'Components/GooeyText',
 		component: GooeyText,
@@ -14,8 +21,7 @@
 			text: sample,
 			maxWidth: 180,
 			pointer: 'bottom-left',
-			radius: 8,
-			fill: '#FFFFFF'
+			radius: 8
 		},
 		argTypes: {
 			text: { control: 'text' },
@@ -47,24 +53,14 @@
 </script>
 
 {#snippet stage(args, dark: boolean)}
-	<div class="stage" class:dark>
-		<GooeyText {...args} />
+	<div class="stage">
+		<GooeyText {...withSchemeFill(args, dark)} />
 	</div>
 {/snippet}
 
 <Story name="Playground">
-	{#snippet template(args)}
-		{@render stage(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Playground (dark)"
-	args={{ fill: '#000000' }}
-	parameters={{ backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render stage(args, true)}
+	{#snippet template(args, context)}
+		{@render stage(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -72,11 +68,11 @@
 	name="Pointers"
 	parameters={{ controls: { include: ['text', 'maxWidth', 'radius', 'fill'] } }}
 >
-	{#snippet template(args)}
+	{#snippet template(args, context)}
 		<div class="stage grid">
 			{#each pointers as pointer (pointer)}
 				<figure>
-					<GooeyText {...args} {pointer} />
+					<GooeyText {...withSchemeFill(args, isDark(context))} {pointer} />
 					<figcaption><code>{pointer}</code></figcaption>
 				</figure>
 			{/each}
@@ -85,8 +81,8 @@
 </Story>
 
 <Story name="Single line" args={{ text: 'One line, no maxWidth', maxWidth: undefined }}>
-	{#snippet template(args)}
-		{@render stage(args, false)}
+	{#snippet template(args, context)}
+		{@render stage(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -103,7 +99,7 @@
 		line-height: 120%;
 		letter-spacing: 0.42px;
 	}
-	.stage.dark {
+	:global([data-scheme='dark']) .stage {
 		background: #161c1e;
 		color: #fff;
 	}

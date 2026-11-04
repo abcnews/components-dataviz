@@ -1,7 +1,7 @@
 <!-- Annotation (Svelte 5): small label whose one square corner works as an arrow. Variants: filled (default), outline.
      Place it at the target point; `anchor` sets which label point sits there (see Anchored, which does the work).
      <Annotation text="Peak" anchor="bottom-right" offset={8} />  or pin it:  <Annotation text="Peak" x={120} y={80} />
-     Style with --annotation-* vars (defaults in the CSS); the outline variant flips to dark under a `.dark` ancestor. -->
+     Style with --annotation-* vars (defaults in the CSS); the outline variant flips to dark under a [data-scheme="dark"] ancestor (set by the consumer). -->
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements';
 	import Anchored, { type Anchor } from '../Anchored/Anchored.svelte';
@@ -13,7 +13,7 @@
 		/** Label text; ignored when `children` is passed. */
 		text?: string;
 		/** 'filled' (default): padded label with background. 'outline': bare text with a 1px glyph
-		 *  border, black on white (inverted under `.dark`). */
+		 *  border, black on white (inverted under [data-scheme="dark"]). */
 		variant?: 'filled' | 'outline';
 		/** Label point that sits at the placement spot (default 'top-left', no shift). */
 		anchor?: Anchor;
@@ -209,7 +209,7 @@
 		stroke-linejoin: round;
 	}
 
-	:global(.dark) .annotation.outline {
+	:global([data-scheme='dark']) .annotation.outline {
 		--outline-default-text: #fff;
 		--outline-default-stroke: #000;
 	}

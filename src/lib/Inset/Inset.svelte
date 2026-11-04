@@ -1,7 +1,7 @@
 <!-- Inset (Svelte 5): an image cropped to a circle or a rounded square, with a themed border.
      Corner radius follows the rendered width: <=40px 4px, <=50px 8px, >=72px 12px (51-71px stays 8px).
      <Inset src="/me.jpg" alt="Jo Smith" size={48} shape="circle" />
-     Border: always 1px; white in light mode, black under a `.dark` ancestor. Change the colour with the
+     Border: always 1px; white in light mode, black under a [data-scheme="dark"] ancestor (set by the consumer). Change the colour with the
      `colour` prop or the --image-border-colour var.
      Other vars: --image-radius (rounded only), --image-fill (placeholder colour while loading).
      Placement: `anchor` sets which point of the inset sits on the spot it is placed at (see Anchored, which
@@ -136,7 +136,7 @@
 		height: 100%;
 	}
 
-	:global(.dark) .frame {
+	:global([data-scheme='dark']) .frame {
 		--image-border-colour-default: #000;
 		--image-fill-default: #2a3336;
 	}

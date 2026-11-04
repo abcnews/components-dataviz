@@ -18,6 +18,9 @@
 	const red = '#E71D38';
 	const darkRed = '#FF667B';
 
+	/** Storybook's toolbar sets this global; the same value ends up on <html data-scheme>. */
+	const isDark = (context: { globals: Record<string, unknown> }) => context.globals.scheme === 'dark';
+
 	const px = (value: number | string | undefined) =>
 		typeof value === 'number' ? `${value}px` : (value ?? '0px');
 
@@ -61,7 +64,7 @@
 </script>
 
 {#snippet playground(args, dark: boolean)}
-	<div class="stage" class:dark>
+	<div class="stage">
 		<!-- Zero-size spot at the stage centre; the wrapper inherits it as its target point -->
 		<div class="point">
 			<Anchored {...args}>
@@ -69,26 +72,26 @@
 			</Anchored>
 			<!-- After the content so the dot stays visible on top of it -->
 			<span class="marker">
-				<Icon name="circle" variant="filled" width={12} color={dark ? darkRed : red} {dark} />
+				<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 			</span>
 		</div>
 	</div>
 {/snippet}
 
 {#snippet placed(args, dark: boolean)}
-	<div class="stage" class:dark>
+	<div class="stage">
 		<!-- No point wrapper: x / y place the content against the stage -->
 		<Anchored {...args}>
 			<div class="swatch">Content</div>
 		</Anchored>
 		<span class="marker" style="left:{px(args.x)};top:{px(args.y)}">
-			<Icon name="circle" variant="filled" width={12} color={dark ? darkRed : red} {dark} />
+			<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 		</span>
 	</div>
 {/snippet}
 
 {#snippet anchorGrid(dark: boolean)}
-	<div class="surface" class:dark>
+	<div class="surface">
 		<div class="grid">
 			{#each anchors as anchor (anchor)}
 				<div class="cell">
@@ -98,7 +101,7 @@
 							<div class="swatch small">Content</div>
 						</Anchored>
 						<span class="marker">
-							<Icon name="circle" variant="filled" width={8} color={dark ? darkRed : red} {dark} />
+							<Icon name="circle" variant="filled" width={8} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 						</span>
 					</div>
 				</div>
@@ -108,29 +111,14 @@
 {/snippet}
 
 <Story name="Playground">
-	{#snippet template(args)}
-		{@render playground(args, false)}
-	{/snippet}
-</Story>
-
-<Story name="Playground (dark)" parameters={{ backgrounds: { default: 'dark' } }}>
-	{#snippet template(args)}
-		{@render playground(args, true)}
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
 	{/snippet}
 </Story>
 
 <Story name="Anchors" parameters={{ controls: { disable: true } }}>
-	{#snippet template()}
-		{@render anchorGrid(false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Anchors (dark)"
-	parameters={{ controls: { disable: true }, backgrounds: { default: 'dark' } }}
->
-	{#snippet template()}
-		{@render anchorGrid(true)}
+	{#snippet template(_args, context)}
+		{@render anchorGrid(isDark(context))}
 	{/snippet}
 </Story>
 
@@ -139,18 +127,8 @@
 	args={{ x: 120, y: 90, anchor: 'center', offset: 0 }}
 	parameters={{ controls: { exclude: [] } }}
 >
-	{#snippet template(args)}
-		{@render placed(args, false)}
-	{/snippet}
-</Story>
-
-<Story
-	name="Placed (dark)"
-	args={{ x: 120, y: 90, anchor: 'center', offset: 0 }}
-	parameters={{ controls: { exclude: [] }, backgrounds: { default: 'dark' } }}
->
-	{#snippet template(args)}
-		{@render placed(args, true)}
+	{#snippet template(args, context)}
+		{@render placed(args, isDark(context))}
 	{/snippet}
 </Story>
 
@@ -162,7 +140,7 @@
 		background: #c8d6ea;
 		overflow: hidden;
 	}
-	.stage.dark {
+	:global([data-scheme='dark']) .stage {
 		background: #161c1e;
 	}
 	.point {
@@ -205,7 +183,7 @@
 		background: #c8d6ea;
 		padding: 16px;
 	}
-	.surface.dark {
+	:global([data-scheme='dark']) .surface {
 		background: #161c1e;
 		color: #e8eef0;
 	}
@@ -219,7 +197,7 @@
 		height: 110px;
 		background: rgba(255, 255, 255, 0.35);
 	}
-	.surface.dark .cell {
+	:global([data-scheme='dark']) .surface .cell {
 		background: rgba(255, 255, 255, 0.06);
 	}
 	.cell .point {
