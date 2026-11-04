@@ -1,103 +1,51 @@
-<!--
-  Annotation.svelte  (Svelte 5)
+<!-- Annotation (Svelte 5): small label whose one square corner works as an arrow. Variants: filled (default), outline.
+     Place it at the target point; `anchor` sets which label point sits there. <Annotation text="Peak" anchor="bottom-right" offset={8} />
+     Style with --annotation-* vars (defaults in the CSS); the outline variant flips to dark under a `.dark` ancestor. -->
+<script lang="ts">
+	import type { HTMLAttributes } from 'svelte/elements';
+	import GooeyText from '../GooeyText/GooeyText.svelte';
 
-  A small label whose one square corner acts as an arrow, pointing at
-  whatever it refers to. Has two variants: `filled` (default) and `outline`.
+	type Anchor =
+		| 'top-left'
+		| 'top'
+		| 'top-right'
+		| 'left'
+		| 'center'
+		| 'right'
+		| 'bottom-left'
+		| 'bottom'
+		| 'bottom-right';
+	type Pointer = 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left' | 'none';
 
-  The component does no absolute positioning. Place it (or a zero-size
-  wrapper around it) at the point you want to annotate, and `anchor`
-  decides which point of the label sits on that spot:
+	interface Props extends HTMLAttributes<HTMLDivElement> {
+		/** Label text; ignored when `children` is passed. */
+		text?: string;
+		/** 'filled' (default): padded label with background. 'outline': bare text with a 1px glyph
+		 *  border, black on white (inverted under `.dark`). */
+		variant?: 'filled' | 'outline';
+		/** Label point that sits at the placement spot (default 'top-left', no shift). */
+		anchor?: Anchor;
+		/** Px to push the label away from the anchor so it clears the symbol; ignored for 'center'. */
+		offset?: number;
+		/** Squared-off arrow corner, filled only (default 'bottom-left'). With `gooey`, right ones are line ends. */
+		pointer?: Pointer;
+		/** Background colour (overrides --annotation-fill); filled only. */
+		fill?: string;
+		/** 1px outline colour (overrides --annotation-stroke / --annotation-outline-stroke). Width is fixed. */
+		stroke?: string;
+		/** Max width (number = px; includes padding when filled). Enables left-aligned wrapping; unset = one line. */
+		maxWidth?: number | string;
+		/** Draw the background with GooeyText, filled only; ignores --annotation-pointer-radius and `stroke`.
+		 *  Best with `maxWidth` (a single line is just a rounded rectangle). */
+		gooey?: boolean;
+		/** Text colour (overrides --annotation-text / --annotation-outline-text). */
+		color?: string;
+		/** Font-weight 700 (overrides --annotation-font-weight). */
+		bold?: boolean;
+		class?: string;
+		style?: string;
+	}
 
-    <div style="position:absolute; left:100px; top:100px">
-      <Annotation text="Peak" anchor="bottom-right" pointer="bottom-right" offset={8} />
-    </div>
-
-  Props
-  -----
-  text          string        Label text (or pass children instead).
-  children      snippet       Label content, used instead of `text`.
-  variant       'filled' | 'outline'
-                              'filled'  is a padded label with a background.
-                              'outline' has no background and no padding: just
-                              text with a border drawn around the glyphs.
-                              Light mode: black text, white border.
-                              Dark mode:  white text, black border.
-                              Default: 'filled'.
-  anchor        'top-left' | 'top' | 'top-right'
-                | 'left' | 'center' | 'right'
-                | 'bottom-left' | 'bottom' | 'bottom-right'
-                              Which point of the label sits on the spot where
-                              the component is placed. Default: 'top-left'
-                              (no shift).
-  offset        number        Pixels to push the label away from the anchor
-                              point, along the direction it already extends
-                              (so it clears the symbol it points to). Applies
-                              to edge and corner anchors; ignored for
-                              'center'. Default: 0.
-  pointer       'top-left' | 'top-right' | 'bottom-right' | 'bottom-left' | 'none'
-                              Which corner is squared off to act as the arrow.
-                              Filled variant only. Default: 'bottom-left'.
-  fill          string        Background colour (overrides --annotation-fill).
-                              Filled variant only.
-  stroke        string        Outline colour (overrides --annotation-stroke, or
-                              --annotation-outline-stroke for the outline variant).
-  strokeWidth   number|string Outline width. Numbers are px. (overrides
-                              --annotation-stroke-width, or
-                              --annotation-outline-stroke-width for the outline
-                              variant).
-  color         string        Text colour (overrides --annotation-text, or
-                              --annotation-outline-text for the outline variant).
-  bold          boolean       Sets font-weight to 700 (overrides
-                              --annotation-font-weight). Default: false.
-  class, style                Passed through to the root element.
-
-  Anchoring is done with a transform, so it never affects layout and the
-  label can't be pushed past its anchor, whatever its size.
-
-  CSS variables (set on :root, or any ancestor, to restyle globally)
-  ------------------------------------------------------------------
-  Both variants
-  --annotation-font-family           default "ABC Sans Nova", sans-serif
-  --annotation-font-size             default 14px
-  --annotation-font-weight           default 400
-  --annotation-letter-spacing        default 0.42px
-
-  Filled variant
-  --annotation-fill                  Background.                  default #fff
-  --annotation-stroke                Outline colour.              default transparent
-  --annotation-stroke-width          Outline width.               default 1px
-  --annotation-text                  Text colour.                 default #000
-  --annotation-radius                Rounded corner radius.       default 8px
-  --annotation-pointer-radius        Radius of the arrow corner.  default 0
-  --annotation-padding               Inner padding.               default 6px 8px
-
-  Outline variant
-  --annotation-outline-text          Text colour.    default #000 (#fff in dark)
-  --annotation-outline-stroke        Border colour.  default #fff (#000 in dark)
-  --annotation-outline-stroke-width  Visible border width.           default 2px
-
-  Props set the variables inline on the element, so they win over globals
-  for that instance only. Unset props leave the global values untouched.
-
-  Dark mode for the outline variant is switched on by a `.dark` class on any
-  ancestor. To follow the OS setting instead, set the outline variables in a
-  media query:
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --annotation-outline-text: #fff;
-        --annotation-outline-stroke: #000;
-      }
-    }
-
-  Note: in the filled variant the stroke is drawn with an inset box-shadow,
-  so it follows the corner shapes (including the squared arrow corner) and
-  never changes the label's size or position. In the outline variant the
-  border is a text stroke painted underneath the glyph fill: the full stroke
-  is doubled and the inner half is hidden, so the width you set is the width
-  you see and the glyph shapes are never thinned.
--->
-<script>
 	let {
 		text = '',
 		children,
@@ -107,20 +55,22 @@
 		pointer = 'bottom-left',
 		fill,
 		stroke,
-		strokeWidth,
+		maxWidth,
+		gooey = false,
 		color,
 		bold = false,
 		class: className = '',
 		style = '',
 		...rest
-	} = $props();
+	}: Props = $props();
 
 	let isOutline = $derived(variant === 'outline');
+	let isGooey = $derived(gooey && !isOutline);
+	let isMultiline = $derived(maxWidth !== undefined && maxWidth !== null && maxWidth !== '');
 
-	// Fraction of the label's width/height that sits before the anchor point
-	// (0 = start edge, 0.5 = middle, 1 = end edge).
-	function getAnchorFractions(anchorName) {
-		const fractionsByAnchor = {
+	// Fraction of the label's [width, height] before the anchor point (0 = start, 1 = end).
+	function getAnchorFractions(anchorName: Anchor) {
+		const fractionsByAnchor: Record<Anchor, [number, number]> = {
 			'top-left': [0, 0],
 			top: [0.5, 0],
 			'top-right': [1, 0],
@@ -135,24 +85,23 @@
 		return fractionsByAnchor[anchorName] ?? fractionsByAnchor['top-left'];
 	}
 
-	function buildAnchorTransform(anchorName, offsetInPixels) {
+	function buildAnchorTransform(anchorName: Anchor, offsetInPixels: number) {
 		const [horizontalFraction, verticalFraction] = getAnchorFractions(anchorName);
 		const isUnshifted = horizontalFraction === 0 && verticalFraction === 0 && !offsetInPixels;
 
 		if (isUnshifted) return undefined;
 
-		// Away from the anchor point: positive when the label extends forward,
-		// negative when it extends backward, zero when it straddles the point.
-		const pixelsAwayFromAnchor = (fraction) => (1 - 2 * fraction) * offsetInPixels;
+		// Pixels away from the anchor: + forward, - backward, 0 when straddling it.
+		const pixelsAwayFromAnchor = (fraction: number) => (1 - 2 * fraction) * offsetInPixels;
 		const horizontalShift = `${-horizontalFraction * 100}% + ${pixelsAwayFromAnchor(horizontalFraction)}px`;
 		const verticalShift = `${-verticalFraction * 100}% + ${pixelsAwayFromAnchor(verticalFraction)}px`;
 
 		return `transform:translate(calc(${horizontalShift}), calc(${verticalShift}))`;
 	}
 
-	function buildBorderRadius(pointerCorner) {
-		// Order required by border-radius: top-left, top-right, bottom-right, bottom-left
-		const cornersInOrder = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
+	function buildBorderRadius(pointerCorner: Pointer) {
+		// Order required by border-radius.
+		const cornersInOrder: Pointer[] = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
 
 		return cornersInOrder
 			.map((corner) =>
@@ -163,31 +112,40 @@
 			.join(' ');
 	}
 
-	function buildCustomProperties({ isOutline, fill, stroke, strokeWidth, color, bold }) {
-		const toCssLength = (value) => (typeof value === 'number' ? `${value}px` : value);
-
-		const colourProperties = isOutline
+	function buildCustomProperties(options: {
+		isOutline: boolean;
+		fill?: string;
+		stroke?: string;
+		color?: string;
+		bold: boolean;
+	}) {
+		const colourProperties: [string, string | undefined][] = options.isOutline
 			? [
-					['--annotation-outline-stroke', stroke],
-					['--annotation-outline-stroke-width', toCssLength(strokeWidth)],
-					['--annotation-outline-text', color]
+					['--annotation-outline-stroke', options.stroke],
+					['--annotation-outline-text', options.color]
 				]
 			: [
-					['--annotation-fill', fill],
-					['--annotation-stroke', stroke],
-					['--annotation-stroke-width', toCssLength(strokeWidth)],
-					['--annotation-text', color]
+					['--annotation-fill', options.fill],
+					['--annotation-stroke', options.stroke],
+					['--annotation-text', options.color]
 				];
+		const properties: [string, string | undefined][] = [
+			...colourProperties,
+			['--annotation-font-weight', options.bold ? '700' : undefined]
+		];
 
-		return [...colourProperties, ['--annotation-font-weight', bold ? '700' : undefined]]
+		return properties
 			.filter(([, value]) => value !== undefined)
 			.map(([propertyName, value]) => `${propertyName}:${value}`);
 	}
 
 	let inlineStyle = $derived(
 		[
-			isOutline ? undefined : `border-radius:${buildBorderRadius(pointer)}`,
-			...buildCustomProperties({ isOutline, fill, stroke, strokeWidth, color, bold }),
+			isOutline || isGooey ? undefined : `border-radius:${buildBorderRadius(pointer)}`,
+			isMultiline
+				? `max-width:${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}`
+				: undefined,
+			...buildCustomProperties({ isOutline, fill, stroke, color, bold }),
 			buildAnchorTransform(anchor, offset),
 			style
 		]
@@ -196,11 +154,32 @@
 	);
 </script>
 
-<div class="annotation {className}" class:outline={isOutline} style={inlineStyle} {...rest}>
+{#snippet label()}
 	{#if children}
 		{@render children()}
 	{:else}
 		{text}
+	{/if}
+{/snippet}
+
+<div
+	class="annotation {className}"
+	class:outline={isOutline}
+	class:multiline={isMultiline}
+	class:gooey={isGooey}
+	style={inlineStyle}
+	{...rest}
+>
+	{#if isGooey}
+		<GooeyText
+			{pointer}
+			maxWidth={isMultiline ? '100%' : undefined}
+			style="--gooey-fill:var(--annotation-fill, #fff);--gooey-radius:var(--annotation-radius, 8px);--gooey-padding:var(--annotation-padding, 6px 8px)"
+		>
+			{@render label()}
+		</GooeyText>
+	{:else}
+		{@render label()}
 	{/if}
 </div>
 
@@ -218,8 +197,7 @@
 		white-space: nowrap;
 
 		background: var(--annotation-fill, #fff);
-		box-shadow: inset 0 0 0 var(--annotation-stroke-width, 1px)
-			var(--annotation-stroke, transparent);
+		box-shadow: inset 0 0 0 1px var(--annotation-stroke, transparent);
 
 		color: var(--annotation-text, #000);
 		font-feature-settings: 'ss01' on;
@@ -229,6 +207,21 @@
 		font-weight: var(--annotation-font-weight, 400);
 		line-height: 100%;
 		letter-spacing: var(--annotation-letter-spacing, 0.42px);
+	}
+
+	/* Gooey: GooeyText draws the background and padding instead. */
+	.annotation.gooey {
+		padding: 0;
+		background: none;
+		box-shadow: none;
+	}
+
+	/* Multiline: wrap up to the inline max-width. */
+	.annotation.multiline {
+		white-space: normal;
+		overflow-wrap: break-word;
+		text-align: left;
+		line-height: var(--annotation-multiline-line-height, 120%);
 	}
 
 	.annotation.outline {
@@ -241,9 +234,8 @@
 
 		color: var(--annotation-outline-text, var(--outline-default-text));
 
-		/* Paint the stroke first so the glyph fill covers its inner half. */
-		-webkit-text-stroke: calc(var(--annotation-outline-stroke-width, 2px) * 2)
-			var(--annotation-outline-stroke, var(--outline-default-stroke));
+		/* Stroke painted first at 2px; the glyph fill covers its inner half, leaving 1px. */
+		-webkit-text-stroke: 2px var(--annotation-outline-stroke, var(--outline-default-stroke));
 		paint-order: stroke fill;
 		stroke-linejoin: round;
 	}

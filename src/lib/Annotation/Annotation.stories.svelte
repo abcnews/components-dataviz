@@ -46,6 +46,9 @@
 		{ fill: white, text: black }
 	];
 
+	const multilineText = 'A longer annotation that wraps onto several lines';
+	const multilineWidth = 140;
+
 	const name = (hex: string) =>
 		({
 			[white]: 'white',
@@ -67,7 +70,8 @@
 			offset: 10,
 			pointer: 'bottom-left',
 			bold: false,
-			strokeWidth: 1
+			maxWidth: undefined,
+			gooey: false
 		},
 		argTypes: {
 			text: { control: 'text' },
@@ -102,11 +106,20 @@
 				description:
 					'Overrides --annotation-stroke (or --annotation-outline-stroke for `outline`) for this instance.'
 			},
-			strokeWidth: { control: { type: 'range', min: 0, max: 6, step: 0.5 } },
 			color: {
 				control: 'color',
 				description:
 					'Text colour. Overrides --annotation-text (or --annotation-outline-text for `outline`) for this instance.'
+			},
+			maxWidth: {
+				control: { type: 'number', min: 40, step: 10 },
+				description:
+					'Turns on the multiline version: text wraps and the label is never wider than this many px (padding included for `filled`). Leave empty for a single line.'
+			},
+			gooey: {
+				control: 'boolean',
+				description:
+					'Replaces the solid rectangle with a gooey background that hugs each line of wrapped text. Filled only. Needs `maxWidth` to wrap onto several lines.'
 			},
 			bold: { control: 'boolean' },
 			children: { control: false },
@@ -139,10 +152,14 @@
 					<th scope="col">Bold</th>
 					<th scope="col">Outline</th>
 					<th scope="col">Outline Bold</th>
+					<th scope="col">Multiline</th>
+					<th scope="col">Multiline Outline</th>
+					<th scope="col">Gooey</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each rows as { fill, text } (fill + text)}
+					{@const hideOutline = (dark && text === '#000000') || (!dark && text === '#FFFFFF')}
 					<tr>
 						<td><code>{name(fill)}</code></td>
 						<td><code>{name(text)}</code></td>
@@ -152,7 +169,7 @@
 						<td>
 							<Annotation text={args.text} pointer={args.pointer} {fill} color={text} bold />
 						</td>
-						{#if (dark && text === '#000000') || (!dark && text === '#FFFFFF')}
+						{#if hideOutline}
 							<td></td><td></td>
 						{:else}
 							<td>
@@ -175,6 +192,37 @@
 								/>
 							</td>
 						{/if}
+						<td>
+							<Annotation
+								text={multilineText}
+								maxWidth={multilineWidth}
+								pointer={args.pointer}
+								{fill}
+								color={text}
+							/>
+						</td>
+						<td>
+							{#if !hideOutline}
+								<Annotation
+									text={multilineText}
+									maxWidth={multilineWidth}
+									pointer={args.pointer}
+									{fill}
+									color={text}
+									variant="outline"
+								/>
+							{/if}
+						</td>
+						<td>
+							<Annotation
+								text={multilineText}
+								maxWidth={multilineWidth}
+								pointer={args.pointer}
+								{fill}
+								color={text}
+								gooey
+							/>
+						</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -185,7 +233,7 @@
 {#snippet outlineOverrides(args, dark: boolean)}
 	<div class="stage split" class:dark>
 		<div class="row" style="top: 40px">
-			<Annotation variant="outline" text="Default" anchor="center" strokeWidth={args.strokeWidth} />
+			<Annotation variant="outline" text="Default" anchor="center" />
 		</div>
 		<div class="row" style="top: 90px">
 			<Annotation
@@ -194,7 +242,6 @@
 				anchor="center"
 				color={dark ? darkBlue : blue}
 				stroke={dark ? darkRed : red}
-				strokeWidth={args.strokeWidth}
 			/>
 		</div>
 		<div
@@ -224,7 +271,7 @@
 	{/snippet}
 </Story>
 
-<Story name="Outline" args={{ variant: 'outline', strokeWidth: 2 }}>
+<Story name="Outline" args={{ variant: 'outline' }}>
 	{#snippet template(args)}
 		{@render playground(args, false)}
 	{/snippet}
@@ -232,7 +279,7 @@
 
 <Story
 	name="Outline (dark)"
-	args={{ variant: 'outline', strokeWidth: 2 }}
+	args={{ variant: 'outline' }}
 	parameters={{ backgrounds: { default: 'dark' } }}
 >
 	{#snippet template(args)}
@@ -241,10 +288,75 @@
 </Story>
 
 <Story
-	name="Outline overrides"
-	args={{ strokeWidth: 2 }}
-	parameters={{ controls: { include: ['strokeWidth'] } }}
+	name="Multiline"
+	args={{ text: multilineText, maxWidth: multilineWidth, anchor: 'bottom-left' }}
 >
+	{#snippet template(args)}
+		{@render playground(args, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Multiline (dark)"
+	args={{
+		text: multilineText,
+		maxWidth: multilineWidth,
+		fill: black,
+		color: white,
+		stroke: black
+	}}
+	parameters={{ backgrounds: { default: 'dark' } }}
+>
+	{#snippet template(args)}
+		{@render playground(args, true)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Multiline outline"
+	args={{ text: multilineText, maxWidth: multilineWidth, variant: 'outline' }}
+>
+	{#snippet template(args)}
+		{@render playground(args, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Multiline outline (dark)"
+	args={{ text: multilineText, maxWidth: multilineWidth, variant: 'outline' }}
+	parameters={{ backgrounds: { default: 'dark' } }}
+>
+	{#snippet template(args)}
+		{@render playground(args, true)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Gooey"
+	args={{ text: multilineText, maxWidth: multilineWidth, gooey: true, anchor: 'bottom-left' }}
+>
+	{#snippet template(args)}
+		{@render playground(args, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Gooey (dark)"
+	args={{
+		text: multilineText,
+		maxWidth: multilineWidth,
+		gooey: true,
+		fill: black,
+		color: white
+	}}
+	parameters={{ backgrounds: { default: 'dark' } }}
+>
+	{#snippet template(args)}
+		{@render playground(args, true)}
+	{/snippet}
+</Story>
+
+<Story name="Outline overrides" parameters={{ controls: { disable: true } }}>
 	{#snippet template(args)}
 		{@render outlineOverrides(args, false)}
 	{/snippet}
@@ -252,9 +364,8 @@
 
 <Story
 	name="Outline overrides (dark)"
-	args={{ strokeWidth: 2 }}
 	parameters={{
-		controls: { include: ['strokeWidth'] },
+		controls: { disable: true },
 		backgrounds: { default: 'dark' }
 	}}
 >

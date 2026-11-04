@@ -13,22 +13,48 @@ const symbols = import.meta.glob('./svg/*.svg', {
 	eager: true
 });
 
+// Position in this list is the file number (0–19).
+export const SYMBOL_NAMES = /** @type {const} */ [
+	'square',
+	'circle',
+	'torus',
+	'triangleb',
+	'trianglea',
+	'arrow',
+	'diamond',
+	'hexagona',
+	'hexagonb',
+	'pin',
+	'number0',
+	'number1',
+	'number2',
+	'number3',
+	'number4',
+	'number5',
+	'number6',
+	'number7',
+	'number8',
+	'number9'
+];
+
+/** @typedef {(typeof SYMBOL_NAMES)[number]} SymbolName */
+
 const closestSize = (width) =>
 	Object.keys(SIZES).reduce((best, size) =>
 		Math.abs(SIZES[size] - width) < Math.abs(SIZES[best] - width) ? size : best
 	);
 
-// Name 0 is "Fill" / "Stroke"; names 1–19 are "Fill-1" … "Fill-19".
-const filePath = (name, variant, size) => {
+// Index 0 is "Fill" / "Stroke"; 1–19 are "Fill-1" … "Fill-19".
+const filePath = (index, variant, size) => {
 	const style = variant === 'stroke' ? 'Stroke' : 'Fill';
-	const suffix = Number(name) === 0 ? '' : `-${name}`;
+	const suffix = index === 0 ? '' : `-${index}`;
 	return `./svg/Size=${size}, Style=${style}${suffix}.svg`;
 };
 
 /**
  * Get a symbol as an SVG string.
  * @param {object} options
- * @param {string|number} options.name   Symbol name, 0–19
+ * @param {SymbolName} options.name   Symbol name, e.g. 'SymbolCircle'
  * @param {'fill'|'stroke'} [options.variant='fill']
  * @param {number} [options.width=16]    Desired width in px; closest size file is used
  * @param {'light'|'dark'} [options.scheme='light']  light → white strokes, dark → black
@@ -42,7 +68,10 @@ export function getSymbol({
 	scheme = 'light',
 	colour = SOURCE_COLOUR
 }) {
-	const path = filePath(name, variant, closestSize(width));
+	const index = SYMBOL_NAMES.indexOf(name);
+	if (index === -1) throw new Error(`Unknown symbol: ${name}`);
+
+	const path = filePath(index, variant, closestSize(width));
 	const svg = symbols[path];
 	if (!svg) throw new Error(`Symbol not found: ${path}`);
 

@@ -1,8 +1,9 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Icon from './Icon.svelte';
+	import { SYMBOL_NAMES } from './getSymbol.js';
 
-	const names = Array.from({ length: 20 }, (_, i) => String(i));
+	const names = SYMBOL_NAMES;
 	const sizes = [8, 12, 16, 20, 32];
 	const variants = ['stroke', 'fill'] as const;
 
@@ -10,7 +11,13 @@
 		title: 'Icons/Icon',
 		component: Icon,
 		tags: ['autodocs'],
-		args: { name: '0', width: 32, variant: 'stroke', colour: '#1E5AEB', scheme: 'light' },
+		args: {
+			name: 'SymbolSquare',
+			width: 32,
+			variant: 'stroke',
+			colour: '#1E5AEB',
+			scheme: 'light'
+		},
 		argTypes: {
 			name: { control: 'select', options: names },
 			width: { control: { type: 'range', min: 4, max: 160, step: 1 } },

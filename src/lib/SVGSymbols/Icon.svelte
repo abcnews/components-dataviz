@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getSymbol } from './getSymbol.js';
+	import { getSymbol, type SymbolName } from './getSymbol.js';
 
 	interface Props {
-		name: string;
+		name: SymbolName;
 		variant?: 'fill' | 'stroke';
 		width?: number;
 		scheme?: 'light' | 'dark';
