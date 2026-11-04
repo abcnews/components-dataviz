@@ -49,6 +49,9 @@
 	const multilineText = 'A longer annotation that wraps onto several lines';
 	const multilineWidth = 140;
 
+	const px = (value: number | string | undefined) =>
+		typeof value === 'number' ? `${value}px` : (value ?? '0px');
+
 	const name = (hex: string) =>
 		({
 			[white]: 'white',
@@ -73,6 +76,8 @@
 			maxWidth: undefined,
 			gooey: false
 		},
+		// x / y are only meaningful in the "Placed" stories, which switch the controls back on.
+		parameters: { controls: { exclude: ['x', 'y'] } },
 		argTypes: {
 			text: { control: 'text' },
 			variant: {
@@ -91,6 +96,16 @@
 				control: { type: 'range', min: 0, max: 48, step: 1 },
 				description:
 					'Pixels to push the label away from the anchor point, so it clears the symbol it points to. Ignored for `center`.'
+			},
+			x: {
+				control: 'number',
+				description:
+					"Pins the anchor point this many px from the left of the nearest positioned ancestor (or any CSS length as a string). Leave `x` and `y` unset to use the parent's origin."
+			},
+			y: {
+				control: 'number',
+				description:
+					'Pins the anchor point this many px from the top of the nearest positioned ancestor.'
 			},
 			pointer: {
 				control: 'select',
@@ -138,6 +153,16 @@
 			</span>
 			<Annotation {...args} />
 		</div>
+	</div>
+{/snippet}
+
+{#snippet placed(args, dark: boolean)}
+	<div class="stage" class:dark class:split={args.variant === 'outline'}>
+		<!-- No point wrapper: x / y place the annotation against the stage -->
+		<span class="marker" style="left:{px(args.x)};top:{px(args.y)}">
+			<Icon name="circle" variant="filled" width={12} color={dark ? darkRed : red} {dark} />
+		</span>
+		<Annotation {...args} />
 	</div>
 {/snippet}
 
@@ -353,6 +378,26 @@
 >
 	{#snippet template(args)}
 		{@render playground(args, true)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Placed"
+	args={{ x: 120, y: 90, anchor: 'bottom-left' }}
+	parameters={{ controls: { exclude: [] } }}
+>
+	{#snippet template(args)}
+		{@render placed(args, false)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Placed (dark)"
+	args={{ x: 120, y: 90, anchor: 'bottom-left', fill: black, color: white, stroke: black }}
+	parameters={{ controls: { exclude: [] }, backgrounds: { default: 'dark' } }}
+>
+	{#snippet template(args)}
+		{@render placed(args, true)}
 	{/snippet}
 </Story>
 

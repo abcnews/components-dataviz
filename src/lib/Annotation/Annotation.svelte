@@ -1,20 +1,12 @@
 <!-- Annotation (Svelte 5): small label whose one square corner works as an arrow. Variants: filled (default), outline.
-     Place it at the target point; `anchor` sets which label point sits there. <Annotation text="Peak" anchor="bottom-right" offset={8} />
+     Place it at the target point; `anchor` sets which label point sits there (see Anchored, which does the work).
+     <Annotation text="Peak" anchor="bottom-right" offset={8} />  or pin it:  <Annotation text="Peak" x={120} y={80} />
      Style with --annotation-* vars (defaults in the CSS); the outline variant flips to dark under a `.dark` ancestor. -->
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements';
+	import Anchored, { type Anchor } from '../Anchored/Anchored.svelte';
 	import GooeyText from '../GooeyText/GooeyText.svelte';
 
-	type Anchor =
-		| 'top-left'
-		| 'top'
-		| 'top-right'
-		| 'left'
-		| 'center'
-		| 'right'
-		| 'bottom-left'
-		| 'bottom'
-		| 'bottom-right';
 	type Pointer = 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left' | 'none';
 
 	interface Props extends HTMLAttributes<HTMLDivElement> {
@@ -27,6 +19,11 @@
 		anchor?: Anchor;
 		/** Px to push the label away from the anchor so it clears the symbol; ignored for 'center'. */
 		offset?: number;
+		/** Pin the anchor point at this distance from the left of the nearest positioned ancestor
+		 *  (number = px, or any CSS length). Leave `x` and `y` unset to use the parent's origin. */
+		x?: number | string;
+		/** Pin the anchor point at this distance from the top of the nearest positioned ancestor. */
+		y?: number | string;
 		/** Squared-off arrow corner, filled only (default 'bottom-left'). With `gooey`, right ones are line ends. */
 		pointer?: Pointer;
 		/** Background colour (overrides --annotation-fill); filled only. */
@@ -52,6 +49,8 @@
 		variant = 'filled',
 		anchor = 'top-left',
 		offset = 0,
+		x,
+		y,
 		pointer = 'bottom-left',
 		fill,
 		stroke,
@@ -67,37 +66,6 @@
 	let isOutline = $derived(variant === 'outline');
 	let isGooey = $derived(gooey && !isOutline);
 	let isMultiline = $derived(maxWidth !== undefined && maxWidth !== null && maxWidth !== '');
-
-	// Fraction of the label's [width, height] before the anchor point (0 = start, 1 = end).
-	function getAnchorFractions(anchorName: Anchor) {
-		const fractionsByAnchor: Record<Anchor, [number, number]> = {
-			'top-left': [0, 0],
-			top: [0.5, 0],
-			'top-right': [1, 0],
-			left: [0, 0.5],
-			center: [0.5, 0.5],
-			right: [1, 0.5],
-			'bottom-left': [0, 1],
-			bottom: [0.5, 1],
-			'bottom-right': [1, 1]
-		};
-
-		return fractionsByAnchor[anchorName] ?? fractionsByAnchor['top-left'];
-	}
-
-	function buildAnchorTransform(anchorName: Anchor, offsetInPixels: number) {
-		const [horizontalFraction, verticalFraction] = getAnchorFractions(anchorName);
-		const isUnshifted = horizontalFraction === 0 && verticalFraction === 0 && !offsetInPixels;
-
-		if (isUnshifted) return undefined;
-
-		// Pixels away from the anchor: + forward, - backward, 0 when straddling it.
-		const pixelsAwayFromAnchor = (fraction: number) => (1 - 2 * fraction) * offsetInPixels;
-		const horizontalShift = `${-horizontalFraction * 100}% + ${pixelsAwayFromAnchor(horizontalFraction)}px`;
-		const verticalShift = `${-verticalFraction * 100}% + ${pixelsAwayFromAnchor(verticalFraction)}px`;
-
-		return `transform:translate(calc(${horizontalShift}), calc(${verticalShift}))`;
-	}
 
 	function buildBorderRadius(pointerCorner: Pointer) {
 		// Order required by border-radius.
@@ -146,7 +114,6 @@
 				? `max-width:${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}`
 				: undefined,
 			...buildCustomProperties({ isOutline, fill, stroke, color, bold }),
-			buildAnchorTransform(anchor, offset),
 			style
 		]
 			.filter(Boolean)
@@ -162,26 +129,28 @@
 	{/if}
 {/snippet}
 
-<div
-	class="annotation {className}"
-	class:outline={isOutline}
-	class:multiline={isMultiline}
-	class:gooey={isGooey}
-	style={inlineStyle}
-	{...rest}
->
-	{#if isGooey}
-		<GooeyText
-			{pointer}
-			maxWidth={isMultiline ? '100%' : undefined}
-			style="--gooey-fill:var(--annotation-fill, #fff);--gooey-radius:var(--annotation-radius, 8px);--gooey-padding:var(--annotation-padding, 6px 8px)"
-		>
+<Anchored {anchor} {offset} {x} {y}>
+	<div
+		class="annotation {className}"
+		class:outline={isOutline}
+		class:multiline={isMultiline}
+		class:gooey={isGooey}
+		style={inlineStyle}
+		{...rest}
+	>
+		{#if isGooey}
+			<GooeyText
+				{pointer}
+				maxWidth={isMultiline ? '100%' : undefined}
+				style="--gooey-fill:var(--annotation-fill, #fff);--gooey-radius:var(--annotation-radius, 8px);--gooey-padding:var(--annotation-padding, 6px 8px)"
+			>
+				{@render label()}
+			</GooeyText>
+		{:else}
 			{@render label()}
-		</GooeyText>
-	{:else}
-		{@render label()}
-	{/if}
-</div>
+		{/if}
+	</div>
+</Anchored>
 
 <style>
 	.annotation {
