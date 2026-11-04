@@ -6,6 +6,10 @@ const SIZES = { 1: 10, 2: 15, 3: 19, 4: 23 };
 
 const STROKE_BY_SCHEME = { light: 'white', dark: 'black' };
 
+// vector-effect isn't inherited, so it must be set on each shape element.
+// The lookahead skips tags that already declare it.
+const SHAPE_TAGS = /<(path|circle|ellipse|rect|line|polyline|polygon)\b(?![^>]*\bvector-effect=)/g;
+
 // Raw SVG strings keyed by path, e.g. "./svg/Size=1, Style=Fill-1.svg".
 const symbols = import.meta.glob('./svg/*.svg', {
 	query: '?raw',
@@ -78,5 +82,6 @@ export function getSymbol({
 	return svg
 		.replaceAll(SOURCE_COLOUR, colour)
 		.replaceAll(SOURCE_STROKE, `"${STROKE_BY_SCHEME[scheme]}"`)
-		.replace(/width="\d+" height="\d+"/, `width="${width}" height="${width}"`);
+		.replace(/width="\d+" height="\d+"/, `width="${width}" height="${width}"`)
+		.replace(SHAPE_TAGS, '<$1 vector-effect="non-scaling-stroke"');
 }

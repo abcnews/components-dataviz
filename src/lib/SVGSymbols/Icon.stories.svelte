@@ -12,7 +12,7 @@
 		component: Icon,
 		tags: ['autodocs'],
 		args: {
-			name: 'SymbolSquare',
+			name: 'square',
 			width: 32,
 			variant: 'stroke',
 			colour: '#1E5AEB',
