@@ -2,6 +2,7 @@
 	"name": "@abcnews/components-dataviz",
 	"version": "0.0.1",
 	"license": "MIT",
+	"private": "false",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
