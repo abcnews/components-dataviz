@@ -1,39 +1,29 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Icon from './Icon.svelte';
-	import { listIcons, listTiers, type IconStyle } from './icons.ts';
 
-	const names = listIcons();
+	const names = Array.from({ length: 20 }, (_, i) => String(i));
 	const sizes = [8, 12, 16, 20, 32];
-	const variants: IconStyle[] = ['stroked', 'filled'];
-
-	const has = (name: string, variant: IconStyle) => {
-		try {
-			listTiers(name, variant);
-			return true;
-		} catch {
-			return false;
-		}
-	};
+	const variants = ['stroke', 'fill'] as const;
 
 	const { Story } = defineMeta({
 		title: 'Icons/Icon',
 		component: Icon,
 		tags: ['autodocs'],
-		args: { name: names[0] ?? '', width: 32, variant: 'stroked', color: '#1a1a1a', dark: false },
+		args: { name: '0', width: 32, variant: 'stroke', colour: '#1E5AEB', scheme: 'light' },
 		argTypes: {
 			name: { control: 'select', options: names },
 			width: { control: { type: 'range', min: 4, max: 160, step: 1 } },
 			variant: { control: 'inline-radio', options: variants },
-			color: {
+			colour: {
 				control: 'color',
 				description:
-					'Passed to generateIcon(), which writes it into the SVG fill/stroke attributes. Works the same outside Svelte.'
+					'Any CSS colour or hex code. Passed to getSymbol(), which swaps it into the SVG. Works the same outside Svelte.'
 			},
-			dark: {
-				control: 'boolean',
-				description:
-					'Draws the halo outline in black instead of the light default. Pair with a dark background.'
+			scheme: {
+				control: 'inline-radio',
+				options: ['light', 'dark'],
+				description: 'Light draws the outline in white, dark draws it in black.'
 			},
 			label: { control: 'text' },
 			class: { control: false }
@@ -43,7 +33,7 @@
 
 <Story name="Playground" />
 
-{#snippet iconTable(color: string | undefined, dark: boolean)}
+{#snippet iconTable(colour: string | undefined, scheme: 'light' | 'dark')}
 	<table>
 		<thead>
 			<tr>
@@ -68,16 +58,14 @@
 					{#each variants as variant}
 						{#each sizes as size}
 							<td>
-								{#if has(name, variant)}
-									<Icon
-										{name}
-										width={size}
-										{variant}
-										{color}
-										{dark}
-										label="{name} {variant} {size}px"
-									/>
-								{/if}
+								<Icon
+									{name}
+									width={size}
+									{variant}
+									{colour}
+									{scheme}
+									label="{name} {variant} {size}px"
+								/>
 							</td>
 						{/each}
 					{/each}
@@ -87,20 +75,16 @@
 	</table>
 {/snippet}
 
-<Story name="All icons" parameters={{ controls: { include: ['color'] } }}>
+<Story name="All icons" parameters={{ controls: { include: ['colour'] } }}>
 	{#snippet template(args)}
-		{@render iconTable(args.color, false)}
+		{@render iconTable(args.colour, 'light')}
 	{/snippet}
 </Story>
 
-<Story
-	name="Dark mode"
-	args={{ color: '#e8eef0' }}
-	parameters={{ controls: { include: ['color'] } }}
->
+<Story name="Dark mode" parameters={{ controls: { include: ['colour'] } }}>
 	{#snippet template(args)}
 		<div class="dark-surface">
-			{@render iconTable(args.color, true)}
+			{@render iconTable(args.colour, 'dark')}
 		</div>
 	{/snippet}
 </Story>

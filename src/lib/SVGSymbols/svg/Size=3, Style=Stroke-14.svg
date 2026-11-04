@@ -1,0 +1,13 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect x="2" y="2" width="20" height="20" rx="10" stroke="white" stroke-width="4"/>
+<rect x="2" y="2" width="20" height="20" rx="10" stroke="#1E5AEB" stroke-width="2"/>
+<use xlink:href="#stroke0_3295_3920" fill="#1E5AEB"/>
+<mask id="stroke1_3295_3920" maskUnits="userSpaceOnUse" x="6.5" y="6" width="11" height="12" fill="black">
+<rect fill="white" x="6.5" y="6" width="11" height="12"/>
+<use xlink:href="#stroke0_3295_3920"/>
+</mask>
+<path d="M12.7896 17V14.55H8.39363V12.884L12.6216 7.186H14.5116V13.038H15.7576L15.6596 14.55H14.5116V17H12.7896ZM9.97563 13.038H12.7616V9.23L9.97563 13.038Z" stroke-width="2" stroke="white" mask="url(#stroke1_3295_3920)"/>
+<defs>
+<path id="stroke0_3295_3920" d="M12.7896 17V14.55H8.39363V12.884L12.6216 7.186H14.5116V13.038H15.7576L15.6596 14.55H14.5116V17H12.7896ZM9.97563 13.038H12.7616V9.23L9.97563 13.038Z"/>
+</defs>
+</svg>
