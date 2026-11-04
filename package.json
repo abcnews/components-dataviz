@@ -1,6 +1,7 @@
 {
-	"name": "components-dataviz",
+	"name": "@abcnews/components-dataviz",
 	"version": "0.0.1",
+	"license": "MIT",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -12,7 +13,8 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"storybook": "storybook dev -p 6006 --ci",
-		"build-storybook": "storybook build"
+		"build-storybook": "storybook build",
+		"release": "release-it"
 	},
 	"files": [
 		"dist",
@@ -67,6 +69,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
-		"@abcnews/components-storylab": "^0.4.0"
+		"@abcnews/components-storylab": "^0.4.0",
+		"release-it": "^21.1.2"
 	}
 }
