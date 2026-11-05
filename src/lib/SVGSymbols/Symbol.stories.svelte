@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Symbol from './Symbol.svelte';
+	import PixelRatioCheck from './stories/PixelRatioCheck.svelte';
 	import { SYMBOL_NAMES } from './getSymbol.js';
 
 	const names = SYMBOL_NAMES;
@@ -85,6 +86,17 @@
 <Story name="All symbols" parameters={{ controls: { include: ['colour'] } }}>
 	{#snippet template(args, context)}
 		{@render symbolTable(args.colour, context.globals.scheme === 'dark' ? 'dark' : 'light')}
+	{/snippet}
+</Story>
+
+<!-- Checks getSymbol({ pixelRatio }): rasterised at width × pixelRatio, shown back at 1x. -->
+<Story name="Pixel ratio check" parameters={{ controls: { include: ['name', 'colour'] } }}>
+	{#snippet template(args, context)}
+		<PixelRatioCheck
+			name={args.name}
+			colour={args.colour}
+			scheme={context.globals.scheme === 'dark' ? 'dark' : 'light'}
+		/>
 	{/snippet}
 </Story>
 
