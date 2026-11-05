@@ -6,6 +6,15 @@
 	"publishConfig": {
 		"access": "public"
 	},
+	"release-it": {
+		"git": {
+			"requireBranch": "main"
+		},
+		"github": {
+			"release": true,
+			"autoGenerate": true
+		}
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -73,6 +82,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@abcnews/components-builder": "^2.0.0",
 		"@abcnews/components-storylab": "^0.4.0",
 		"release-it": "^21.1.2"
 	}

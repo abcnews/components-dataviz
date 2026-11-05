@@ -11,6 +11,8 @@ const SCHEME_BACKGROUNDS = { light: '#ffffff', dark: '#161c1e' };
 const withScheme: Decorator = (storyFn, { globals }) => {
 	const scheme = globals.scheme === 'dark' ? 'dark' : 'light';
 	document.documentElement.dataset.scheme = scheme;
+	// Components in "auto" mode follow the nearest data-theme.
+	document.documentElement.dataset.theme = scheme;
 	document.documentElement.style.colorScheme = scheme;
 	document.body.style.background = SCHEME_BACKGROUNDS[scheme];
 	document.body.style.color = scheme === 'dark' ? '#e8eef0' : '#000000';

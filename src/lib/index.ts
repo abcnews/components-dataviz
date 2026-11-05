@@ -5,3 +5,6 @@ export { default as GooeyText } from './GooeyText/GooeyText.svelte';
 export { default as Inset } from './Inset/Inset.svelte';
 export { default as Icon } from './SVGSymbols/Icon.svelte';
 export { getSymbol, SYMBOL_NAMES } from './SVGSymbols/getSymbol';
+export { default as SymbolPicker } from './SymbolPicker/SymbolPicker.svelte';
+export { default as Colours } from './Colours/Colours.svelte';
+export { colours, COLOUR_NAMES, resolveColour } from './Colours/colours';
