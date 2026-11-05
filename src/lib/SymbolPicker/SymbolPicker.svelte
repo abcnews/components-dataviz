@@ -8,7 +8,7 @@
 		resolveColour,
 		type Scheme
 	} from '../Colours/colours.js';
-	import Icon from '../SVGSymbols/Icon.svelte';
+	import Symbol from '../SVGSymbols/Symbol.svelte';
 	import { SYMBOL_NAMES, type SymbolName } from '../SVGSymbols/getSymbol.js';
 
 	interface Props {
@@ -101,7 +101,7 @@
 							aria-pressed={name === symbol}
 							onclick={() => (name = symbol)}
 						>
-							<Icon name={symbol} {variant} colour={resolvedColour} scheme={activeScheme} width={19} />
+							<Symbol name={symbol} {variant} colour={resolvedColour} scheme={activeScheme} width={19} />
 						</button>
 					{:else}
 						<p>No symbols match “{query}”.</p>
@@ -119,7 +119,7 @@
 							aria-pressed={variant === option.value}
 							onclick={() => (variant = option.value)}
 						>
-							<Icon {name} variant={option.value} colour={resolvedColour} scheme={activeScheme} width={16} />
+							<Symbol {name} variant={option.value} colour={resolvedColour} scheme={activeScheme} width={16} />
 						</button>
 					{/each}
 				</div>

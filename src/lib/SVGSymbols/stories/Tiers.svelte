@@ -3,7 +3,7 @@
   unscaled (listTiers().width). Useful for checking the source artwork.
 -->
 <script lang="ts">
-  import Icon from '../Icon.svelte';
+  import Symbol from '../Symbol.svelte';
   import { listTiers, type IconStyle } from '../icons.ts';
 
   interface Props {
@@ -28,7 +28,7 @@
   <div class="tiers">
     {#each result.tiers as t (t.tier)}
       <figure>
-        <Icon {name} width={t.width} {variant} label="{name} tier {t.tier}" />
+        <Symbol {name} width={t.width} {variant} label="{name} tier {t.tier}" />
         <figcaption>
           tier {t.tier}<br />
           {Math.round(t.width * 1000) / 1000}px

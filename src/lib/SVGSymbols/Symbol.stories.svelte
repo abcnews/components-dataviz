@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import Icon from './Icon.svelte';
+	import Symbol from './Symbol.svelte';
 	import { SYMBOL_NAMES } from './getSymbol.js';
 
 	const names = SYMBOL_NAMES;
@@ -8,8 +8,8 @@
 	const variants = ['stroke', 'fill'] as const;
 
 	const { Story } = defineMeta({
-		title: 'Icons/Icon',
-		component: Icon,
+		title: 'Symbols/Symbol',
+		component: Symbol,
 		tags: ['autodocs'],
 		args: {
 			name: 'square',
@@ -40,7 +40,7 @@
 
 <Story name="Playground" />
 
-{#snippet iconTable(colour: string | undefined, scheme: 'light' | 'dark')}
+{#snippet symbolTable(colour: string | undefined, scheme: 'light' | 'dark')}
 	<table>
 		<thead>
 			<tr>
@@ -65,7 +65,7 @@
 					{#each variants as variant}
 						{#each sizes as size}
 							<td>
-								<Icon
+								<Symbol
 									{name}
 									width={size}
 									{variant}
@@ -82,9 +82,9 @@
 	</table>
 {/snippet}
 
-<Story name="All icons" parameters={{ controls: { include: ['colour'] } }}>
+<Story name="All symbols" parameters={{ controls: { include: ['colour'] } }}>
 	{#snippet template(args, context)}
-		{@render iconTable(args.colour, context.globals.scheme === 'dark' ? 'dark' : 'light')}
+		{@render symbolTable(args.colour, context.globals.scheme === 'dark' ? 'dark' : 'light')}
 	{/snippet}
 </Story>
 

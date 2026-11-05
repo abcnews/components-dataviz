@@ -1,6 +1,6 @@
 <!-- Story helper: every icon, both variants, at one width. -->
 <script lang="ts">
-  import Icon from '../Icon.svelte';
+  import Symbol from '../Symbol.svelte';
   import { listIcons, listTiers, type IconStyle } from '../icons.ts';
 
   interface Props {
@@ -28,7 +28,7 @@
       <div class="pair">
         {#each variants as variant (variant)}
           {#if has(name, variant)}
-            <Icon {name} {width} {variant} label="{name} ({variant})" />
+            <Symbol {name} {width} {variant} label="{name} ({variant})" />
           {:else}
             <span class="missing" style:width="{width}px" title="No {variant} variant">–</span>
           {/if}

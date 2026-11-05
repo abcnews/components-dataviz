@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Annotation from './Annotation.svelte';
-	import Icon from '../SVGSymbols/Icon.svelte';
+	import Symbol from '../SVGSymbols/Symbol.svelte';
 
 	const anchors = [
 		'top-left',
@@ -156,7 +156,7 @@
 		<!-- Zero-size spot at the stage centre; the story places the annotation here -->
 		<div class="point">
 			<span class="marker">
-				<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+				<Symbol name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 			</span>
 			<Annotation {...withSchemeColours(args, dark)} />
 		</div>
@@ -167,7 +167,7 @@
 	<div class="stage" class:split={args.variant === 'outline'}>
 		<!-- No point wrapper: x / y place the annotation against the stage -->
 		<span class="marker" style="left:{px(args.x)};top:{px(args.y)}">
-			<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+			<Symbol name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 		</span>
 		<Annotation {...withSchemeColours(args, dark)} />
 	</div>
@@ -182,7 +182,7 @@
 					<div class="point">
 						<Annotation {...withSchemeColours(args, dark)} {anchor} offset={8} />
 						<span class="marker">
-							<Icon
+							<Symbol
 								name="circle"
 								variant="filled"
 								width={8}

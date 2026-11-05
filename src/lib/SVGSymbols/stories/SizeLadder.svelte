@@ -1,6 +1,6 @@
 <!-- Story helper: renders one icon across a range of widths to show tier switching. -->
 <script lang="ts">
-  import Icon from '../Icon.svelte';
+  import Symbol from '../Symbol.svelte';
   import type { IconStyle } from '../icons.ts';
 
   interface Props {
@@ -15,7 +15,7 @@
 <div class="ladder">
   {#each widths as w (w)}
     <figure>
-      <Icon {name} width={w} {variant} label="{name} at {w}px" />
+      <Symbol {name} width={w} {variant} label="{name} at {w}px" />
       <figcaption>{w}px</figcaption>
     </figure>
   {/each}

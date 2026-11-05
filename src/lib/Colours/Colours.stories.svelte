@@ -4,7 +4,7 @@
 	import { COLOUR_NAMES, colourVariableName, colours } from './colours.js';
 
 	const { Story } = defineMeta({
-		title: 'Icons/Colours',
+		title: 'Symbols/Colours',
 		component: Colours,
 		tags: ['autodocs']
 	});

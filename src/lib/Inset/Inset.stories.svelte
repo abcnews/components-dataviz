@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Inset from './Inset.svelte';
-	import Icon from '../SVGSymbols/Icon.svelte';
+	import Symbol from '../SVGSymbols/Symbol.svelte';
 
 	const anchors = [
 		'top-left',
@@ -115,7 +115,7 @@
 			<Inset {...args} />
 			<!-- After the inset so the dot stays visible on top of it -->
 			<span class="marker">
-				<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+				<Symbol name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 			</span>
 		</div>
 	</div>
@@ -126,7 +126,7 @@
 		<!-- No point wrapper: x / y place the inset against the stage -->
 		<Inset {...args} />
 		<span class="marker" style="left:{px(args.x)};top:{px(args.y)}">
-			<Icon name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+			<Symbol name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 		</span>
 	</div>
 {/snippet}
@@ -147,7 +147,7 @@
 								loading="eager"
 							/>
 						<span class="marker">
-							<Icon name="circle" variant="filled" width={8} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+							<Symbol name="circle" variant="filled" width={8} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
 						</span>
 					</div>
 				</div>

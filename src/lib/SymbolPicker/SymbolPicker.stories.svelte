@@ -4,7 +4,7 @@
 	import SymbolPicker from './SymbolPicker.svelte';
 
 	const { Story } = defineMeta({
-		title: 'Icons/SymbolPicker',
+		title: 'Symbols/SymbolPicker',
 		component: SymbolPicker,
 		tags: ['autodocs']
 	});
