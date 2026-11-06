@@ -9,7 +9,7 @@
 	const variants = ['stroke', 'fill'] as const;
 
 	const { Story } = defineMeta({
-		title: 'Symbols/Symbol',
+		title: 'Components/Symbol',
 		component: Symbol,
 		tags: ['autodocs'],
 		args: {
