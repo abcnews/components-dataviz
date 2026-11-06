@@ -16,6 +16,6 @@
 	const style = $derived(`display: contents; ${colourVariables(scheme)}`);
 </script>
 
-<div bind:this={element} {style} data-theme={scheme}>
+<div bind:this={element} {style}>
 	{@render children?.()}
 </div>

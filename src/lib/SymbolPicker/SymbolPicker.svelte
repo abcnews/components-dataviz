@@ -12,7 +12,7 @@
 		variant?: 'fill' | 'stroke';
 		/** A palette name (e.g. 'blue') or a custom hex code. Use resolveColour() to get the hex for a scheme. */
 		colour?: string;
-		/** Light or dark. The picker draws its own theme, palette and symbol outline from this; it starts as the value passed in and is changed by the toggle. */
+		/** Light or dark: the palette, symbol outline and the panel behind the symbols (which previews the base map the symbol is for). Not the picker's own chrome, which inherits the app's theme. Starts as the value passed in and is changed by the toggle. */
 		scheme?: Scheme;
 		/** Text for the fieldset legend. */
 		legend?: string;
@@ -63,7 +63,7 @@
 					bind:value={query}
 				/>
 
-				<div class="grid" role="group" aria-label="Symbols">
+				<div class={['grid', { dark: scheme === 'dark' }]} role="group" aria-label="Symbols">
 					{#each visibleNames as symbol (symbol)}
 						<button
 							type="button"
@@ -116,43 +116,25 @@
 </Colours>
 
 <style>
-	/* Layout, using BuilderStyleRoot's fieldset spacing. The only visual style is the depressed toggle at the bottom. */
-	/* BuilderStyleRoot's colour tokens, switched by the data-theme on the picker's root. */
-	fieldset {
-		--text: #222;
-		--background: #fff;
-		--background-alt: #f2f4f5;
-		--border: rgba(122, 123, 135, 0.5);
-		--radius: 0.3rem;
-		/* Native parts (search box, colour input, scrollbar, Highlight) follow the active scheme, not just the page's. */
-		color-scheme: light;
-	}
-
-	:global([data-theme='dark']) fieldset {
-		--text: #ccc;
-		--background: #121212;
-		--background-alt: #2c2c2f;
-		color-scheme: dark;
-	}
-
-	/* The legend and labels use the picker's own text colour, whatever the page does. */
-	fieldset {
-		color: var(--text);
-	}
-
-	input[type='search'] {
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--background);
-		color: var(--text);
-		padding: 0.25rem 0.5rem;
-	}
-
+	/*
+	 * The chrome (text, buttons, borders) inherits the host app's tokens (--text, --background,
+	 * --background-alt, --border, --radius, as BuilderStyleRoot defines them), so it follows the app's
+	 * own light or dark theme. The fallbacks are system colours, which follow the page's colour-scheme
+	 * when there is no host app. The only colours the picker owns are the symbols' and the panel behind them.
+	 */
 	fieldset {
 		min-width: 0;
 		padding: 0.75rem;
 		border: 1px solid var(--border, rgba(122, 123, 135, 0.5));
 		border-radius: 0.2rem;
+	}
+
+	input[type='search'] {
+		border: 1px solid var(--border, rgba(122, 123, 135, 0.5));
+		border-radius: var(--radius, 0.3rem);
+		background: var(--background, Canvas);
+		color: var(--text, CanvasText);
+		padding: 0.25rem 0.5rem;
 	}
 
 	.layout {
@@ -204,10 +186,10 @@
 		justify-content: center;
 		align-items: center;
 		padding: 0.25rem 0.5rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--background);
-		color: var(--text);
+		border: 1px solid var(--border, rgba(122, 123, 135, 0.5));
+		border-radius: var(--radius, 0.3rem);
+		background: var(--background, Canvas);
+		color: var(--text, CanvasText);
 		line-height: 0;
 	}
 
@@ -223,10 +205,25 @@
 		background: transparent;
 	}
 
-	/* A panel behind the symbols, so they sit on the picker's own light or dark background. */
+	/*
+	 * The panel behind the symbols is the picker's own, not the app's: a symbol's scheme says which
+	 * base map it is drawn for, so the panel previews that map. Light symbols get a light panel and
+	 * dark symbols a dark one, whatever the app's theme is.
+	 */
 	.grid {
-		border-radius: var(--radius);
-		background: var(--background-alt);
+		--panel: #f2f4f5;
+		--panel-selected: #fff;
+		border-radius: var(--radius, 0.3rem);
+		background: var(--panel);
+	}
+
+	.grid.dark {
+		--panel: #2c2c2f;
+		--panel-selected: #3d3d42;
+	}
+
+	.grid button[aria-pressed='true'] {
+		background: var(--panel-selected);
 	}
 
 	/* Toggle pairs read as one piece: no gap, no radius where they meet, same height as the grid buttons. */
@@ -243,11 +240,11 @@
 	}
 
 	.joined button:first-child {
-		border-radius: var(--radius) 0 0 var(--radius);
+		border-radius: var(--radius, 0.3rem) 0 0 var(--radius, 0.3rem);
 	}
 
 	.joined button:last-child {
-		border-radius: 0 var(--radius) var(--radius) 0;
+		border-radius: 0 var(--radius, 0.3rem) var(--radius, 0.3rem) 0;
 	}
 
 	.joined button + button {
@@ -262,8 +259,8 @@
 	/* Depressed toggle, from BuilderStyleRoot's border, radius and alt-background tokens. */
 	button[aria-pressed='true'] {
 		border: 1px solid Highlight;
-		border-radius: var(--radius);
-		background: var(--background-alt);
+		border-radius: var(--radius, 0.3rem);
+		background: var(--background-alt, color-mix(in srgb, CanvasText 10%, Canvas));
 		/* The inset ring in the system highlight colour keeps the pressed state visible on dark backgrounds. */
 		box-shadow:
 			inset 0 0 0 1px Highlight,
