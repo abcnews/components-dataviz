@@ -9,19 +9,29 @@
 		colours?: Record<string, string>;
 		/** Accessible label for the group. */
 		label?: string;
+		/** Show the palette swatches. */
+		showPalette?: boolean;
+		/** Show the recent colour and the custom colour picker. */
+		showCustom?: boolean;
 	}
 
-	let { colour = $bindable('blue'), colours = defaultColours.light, label = 'Colour' }: Props =
-		$props();
+	let {
+		colour = $bindable('blue'),
+		colours = defaultColours.light,
+		label = 'Colour',
+		showPalette = true,
+		showCustom = true
+	}: Props = $props();
 
 	/** The last custom colour chosen, kept across visits so it can be picked again. */
 	let recentColour = $state(loadRecentColour());
 
-	const swatches = $derived(Object.entries(colours));
+	const swatches = $derived(showPalette ? Object.entries(colours) : []);
 	const currentHex = $derived(colours[colour] ?? colour);
 
 	// Palette swatches, the recent colour (if any) and the rainbow picker, laid out as a near-square grid.
-	const columns = $derived(Math.ceil(Math.sqrt(swatches.length + (recentColour ? 2 : 1))));
+	const customCount = $derived(showCustom ? (recentColour ? 2 : 1) : 0);
+	const columns = $derived(Math.max(1, Math.ceil(Math.sqrt(swatches.length + customCount))));
 
 	const rememberCustomColour = (hex: string) => {
 		recentColour = hex;
@@ -42,7 +52,7 @@
 		></button>
 	{/each}
 
-	{#if recentColour}
+	{#if showCustom && recentColour}
 		<button
 			type="button"
 			class="swatch"
@@ -54,16 +64,18 @@
 		></button>
 	{/if}
 
-	<label class="swatch rainbow" title="Custom colour">
-		<span class="visually-hidden">Custom colour</span>
-		<!-- The native picker sits invisibly over the rainbow, so clicking the swatch opens it. -->
-		<input
-			type="color"
-			value={currentHex}
-			oninput={(event) => (colour = event.currentTarget.value)}
-			onchange={(event) => rememberCustomColour(event.currentTarget.value)}
-		/>
-	</label>
+	{#if showCustom}
+		<label class="swatch rainbow" title="Custom colour">
+			<span class="visually-hidden">Custom colour</span>
+			<!-- The native picker sits invisibly over the rainbow, so clicking the swatch opens it. -->
+			<input
+				type="color"
+				value={currentHex}
+				oninput={(event) => (colour = event.currentTarget.value)}
+				onchange={(event) => rememberCustomColour(event.currentTarget.value)}
+			/>
+		</label>
+	{/if}
 </div>
 
 <style>
