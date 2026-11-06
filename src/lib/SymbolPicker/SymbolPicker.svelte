@@ -317,10 +317,15 @@
 		text-align: center;
 	}
 
-	.size-input {
+	/*
+	 * Written as `input[type='text']` so it outranks a host stylesheet such as BuilderStyleRoot's
+	 * `.builder-style-root input[type="text"] { width: 100% }`, which would otherwise stretch the box.
+	 */
+	input.size-input[type='text'] {
 		flex: 0 0 auto;
 		box-sizing: border-box;
 		width: 2rem;
+		max-width: 2rem;
 		height: 1.5rem;
 		padding: 0;
 		border: 1px solid var(--border, rgba(122, 123, 135, 0.5));
