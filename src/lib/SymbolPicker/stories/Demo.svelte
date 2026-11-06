@@ -7,5 +7,4 @@
 	let colour = $state('blue');
 </script>
 
-<!-- scheme defaults to 'auto', which follows the Storybook toolbar through data-theme. -->
 <SymbolPicker bind:name bind:variant bind:colour showSchemeToggle />

@@ -22,5 +22,15 @@ export const colourVariables = (scheme: Scheme) =>
  * colour) is returned as is. Palette names are stored rather than hex codes so a chosen
  * colour follows the light/dark swap.
  */
-export const resolveColour = ({ colour, scheme = 'light' }: { colour: string; scheme?: Scheme }) =>
-	isColourName(colour) ? colours[scheme][colour] : colour;
+export const resolveColour = ({
+	colour,
+	scheme = 'light',
+	palette = colours
+}: {
+	colour: string;
+	scheme?: Scheme;
+	palette?: Palette;
+}) => palette[scheme]?.[colour] ?? colour;
+
+/** Same shape as colours.json: scheme → colour name → hex. Pass your own to use custom colours. */
+export type Palette = Record<Scheme, Record<string, string>>;

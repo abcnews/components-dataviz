@@ -1,13 +1,7 @@
 <script lang="ts">
-	import { MediaQuery } from 'svelte/reactivity';
+	import ColourPicker from '../ColourPicker/ColourPicker.svelte';
 	import Colours from '../Colours/Colours.svelte';
-	import {
-		COLOUR_NAMES,
-		colourVariableName,
-		isColourName,
-		resolveColour,
-		type Scheme
-	} from '../Colours/colours.js';
+	import { colours as defaultColours, resolveColour, type Palette, type Scheme } from '../Colours/colours.js';
 	import Symbol from '../SVGSymbols/Symbol.svelte';
 	import { SYMBOL_NAMES, type SymbolName } from '../SVGSymbols/getSymbol.js';
 
@@ -18,52 +12,30 @@
 		variant?: 'fill' | 'stroke';
 		/** A palette name (e.g. 'blue') or a custom hex code. Use resolveColour() to get the hex for a scheme. */
 		colour?: string;
-		/** Light, dark, or auto (follows the nearest data-theme, then the device setting). Selects the palette and the symbol outline colour; changed by the picker's toggle. */
-		scheme?: Scheme | 'auto';
+		/** Light or dark. The picker draws its own theme, palette and symbol outline from this; it starts as the value passed in and is changed by the toggle. */
+		scheme?: Scheme;
 		/** Text for the fieldset legend. */
 		legend?: string;
-		/** Show the light/dark/auto toggle. Off by default, so the picker stays in `scheme`. */
+		/** Show the light/dark toggle. Off by default, so the picker stays in `scheme`. */
 		showSchemeToggle?: boolean;
+		/** Palette in the colours.json format. Defaults to the standard colours. */
+		colours?: Palette;
 	}
 
 	let {
 		name = $bindable('square'),
 		variant = $bindable('fill'),
 		colour = $bindable('blue'),
-		scheme = $bindable('auto'),
+		scheme = $bindable('light'),
 		legend = 'Symbol',
-		showSchemeToggle = false
+		showSchemeToggle = false,
+		colours = defaultColours
 	}: Props = $props();
 
 	const SCHEMES = [
 		{ value: 'light', label: 'Light' },
-		{ value: 'dark', label: 'Dark' },
-		{ value: 'auto', label: 'Auto' }
+		{ value: 'dark', label: 'Dark' }
 	] as const;
-
-	let rootElement = $state<HTMLDivElement>();
-	/** data-theme of the nearest ancestor that has one, kept up to date if it changes. */
-	let inheritedTheme = $state<Scheme>();
-
-	$effect(() => {
-		const source = rootElement?.parentElement?.closest('[data-theme]');
-		if (!source) {
-			inheritedTheme = undefined;
-			return;
-		}
-		const readTheme = () =>
-			(inheritedTheme = source.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
-		readTheme();
-		const observer = new MutationObserver(readTheme);
-		observer.observe(source, { attributes: true, attributeFilter: ['data-theme'] });
-		return () => observer.disconnect();
-	});
-
-	const prefersDark = new MediaQuery('(prefers-color-scheme: dark)');
-	/** The palette and data-theme only know light and dark. 'auto' uses the inherited data-theme, or the device setting if there isn't one. */
-	const activeScheme = $derived<Scheme>(
-		scheme !== 'auto' ? scheme : (inheritedTheme ?? (prefersDark.current ? 'dark' : 'light'))
-	);
 
 	const VARIANTS = [
 		{ value: 'fill', label: 'Filled' },
@@ -75,11 +47,10 @@
 	const visibleNames = $derived(
 		SYMBOL_NAMES.filter((symbol) => symbol.includes(query.trim().toLowerCase()))
 	);
-	const resolvedColour = $derived(resolveColour({ colour, scheme: activeScheme }));
-	const isCustomColour = $derived(!isColourName(colour));
+	const resolvedColour = $derived(resolveColour({ colour, scheme, palette: colours }));
 </script>
 
-<Colours scheme={activeScheme} bind:element={rootElement}>
+<Colours {scheme}>
 	<fieldset>
 		<legend>{legend}</legend>
 
@@ -92,7 +63,7 @@
 					bind:value={query}
 				/>
 
-				<div class={['grid', { panel: scheme !== 'auto' }]} role="group" aria-label="Symbols">
+				<div class="grid" role="group" aria-label="Symbols">
 					{#each visibleNames as symbol (symbol)}
 						<button
 							type="button"
@@ -101,7 +72,7 @@
 							aria-pressed={name === symbol}
 							onclick={() => (name = symbol)}
 						>
-							<Symbol name={symbol} {variant} colour={resolvedColour} scheme={activeScheme} width={19} />
+							<Symbol name={symbol} {variant} colour={resolvedColour} {scheme} width={19} />
 						</button>
 					{:else}
 						<p>No symbols match “{query}”.</p>
@@ -119,7 +90,7 @@
 							aria-pressed={variant === option.value}
 							onclick={() => (variant = option.value)}
 						>
-							<Symbol {name} variant={option.value} colour={resolvedColour} scheme={activeScheme} width={16} />
+							<Symbol {name} variant={option.value} colour={resolvedColour} {scheme} width={16} />
 						</button>
 					{/each}
 				</div>
@@ -138,27 +109,7 @@
 					</div>
 				{/if}
 
-				<div class="row" role="group" aria-label="Colour">
-					{#each COLOUR_NAMES as option (option)}
-						<button
-							type="button"
-							class="swatch"
-							style:background="var({colourVariableName(option)})"
-							title={option}
-							aria-label={option}
-							aria-pressed={colour === option}
-							onclick={() => (colour = option)}
-						></button>
-					{/each}
-					<label class={{ custom: true, active: isCustomColour }}>
-						Custom
-						<input
-							type="color"
-							value={resolvedColour}
-							oninput={(event) => (colour = event.currentTarget.value)}
-						/>
-					</label>
-				</div>
+				<ColourPicker bind:colour colours={colours[scheme]} />
 			</div>
 		</div>
 	</fieldset>
@@ -173,12 +124,28 @@
 		--background-alt: #f2f4f5;
 		--border: rgba(122, 123, 135, 0.5);
 		--radius: 0.3rem;
+		/* Native parts (search box, colour input, scrollbar, Highlight) follow the active scheme, not just the page's. */
+		color-scheme: light;
 	}
 
 	:global([data-theme='dark']) fieldset {
 		--text: #ccc;
 		--background: #121212;
 		--background-alt: #2c2c2f;
+		color-scheme: dark;
+	}
+
+	/* The legend and labels use the picker's own text colour, whatever the page does. */
+	fieldset {
+		color: var(--text);
+	}
+
+	input[type='search'] {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--background);
+		color: var(--text);
+		padding: 0.25rem 0.5rem;
 	}
 
 	fieldset {
@@ -256,8 +223,8 @@
 		background: transparent;
 	}
 
-	/* Explicit light or dark gets a panel behind the symbols. Auto has none, so it inherits the page. */
-	.grid.panel {
+	/* A panel behind the symbols, so they sit on the picker's own light or dark background. */
+	.grid {
 		border-radius: var(--radius);
 		background: var(--background-alt);
 	}
@@ -292,22 +259,8 @@
 		z-index: 1;
 	}
 
-	.swatch {
-		width: 1.5rem;
-		height: 1.5rem;
-		padding: 0;
-	}
-
-	.custom {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.25rem;
-	}
-
 	/* Depressed toggle, from BuilderStyleRoot's border, radius and alt-background tokens. */
-	button[aria-pressed='true'],
-	.custom.active {
+	button[aria-pressed='true'] {
 		border: 1px solid Highlight;
 		border-radius: var(--radius);
 		background: var(--background-alt);
@@ -315,8 +268,5 @@
 		box-shadow:
 			inset 0 0 0 1px Highlight,
 			inset 0 2px 4px rgba(0, 0, 0, 0.35);
-	}
-	.swatch[aria-pressed='true'] {
-		background-image: linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15));
 	}
 </style>
