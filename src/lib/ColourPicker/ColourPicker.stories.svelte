@@ -21,6 +21,11 @@
 	<p>{standardColour}</p>
 </Story>
 
+<Story name="Full width">
+	<ColourPicker bind:colour={standardColour} fullWidth />
+	<p>{standardColour}</p>
+</Story>
+
 <Story name="Custom colours">
 	<ColourPicker bind:colour={customColour} colours={customColours} />
 	<p>{customColour}</p>

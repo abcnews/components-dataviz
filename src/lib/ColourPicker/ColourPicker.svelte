@@ -13,6 +13,8 @@
 		showPalette?: boolean;
 		/** Show the recent colour and the custom colour picker. */
 		showCustom?: boolean;
+		/** Spread the swatches evenly along the full width of the container, wrapping only if they don't fit. By default they sit together in a near-square block. */
+		fullWidth?: boolean;
 	}
 
 	let {
@@ -20,7 +22,8 @@
 		colours = defaultColours.light,
 		label = 'Colour',
 		showPalette = true,
-		showCustom = true
+		showCustom = true,
+		fullWidth = false
 	}: Props = $props();
 
 	/** The last custom colour chosen, kept across visits so it can be picked again. */
@@ -39,7 +42,7 @@
 	};
 </script>
 
-<div class="grid" role="group" aria-label={label} style:--columns={columns}>
+<div class="grid" class:full-width={fullWidth} role="group" aria-label={label} style:--columns={columns}>
 	{#each swatches as [name, hex] (name)}
 		<button
 			type="button"
@@ -83,6 +86,13 @@
 		display: grid;
 		grid-template-columns: repeat(var(--columns), 1.5rem);
 		gap: 0.25rem;
+	}
+
+	/* As many swatches per row as fit, spread edge to edge. */
+	.grid.full-width {
+		grid-template-columns: repeat(auto-fill, 1.5rem);
+		justify-content: space-between;
+		row-gap: 0.5rem;
 	}
 
 	.swatch {
