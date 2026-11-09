@@ -4,7 +4,7 @@ export { default as Annotation } from './Annotation/Annotation.svelte';
 export { default as GooeyText } from './GooeyText/GooeyText.svelte';
 export { default as Inset } from './Inset/Inset.svelte';
 export { default as Symbol } from './SVGSymbols/Symbol.svelte';
-export { getSymbol, SYMBOL_NAMES } from './SVGSymbols/getSymbol';
+export { getSymbol, getSymbolAnchor, SYMBOL_NAMES } from './SVGSymbols/getSymbol';
 export { default as SymbolPicker } from './SymbolPicker/SymbolPicker.svelte';
 export type { SymbolPickerShow } from './SymbolPicker/SymbolPicker.svelte';
 export { default as ColourPicker } from './ColourPicker/ColourPicker.svelte';

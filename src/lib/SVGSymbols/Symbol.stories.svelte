@@ -2,7 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Symbol from './Symbol.svelte';
 	import PixelRatioCheck from './stories/PixelRatioCheck.svelte';
-	import { SYMBOL_NAMES } from './getSymbol.js';
+	import { SYMBOL_NAMES, getSymbolAnchor } from './getSymbol.js';
 
 	const names = SYMBOL_NAMES;
 	const sizes = [8, 12, 16, 20, 32];
@@ -89,6 +89,23 @@
 	{/snippet}
 </Story>
 
+<!-- Checks getSymbolAnchor(): the red dot is where the symbol points, so it should sit on the tip of the pin and arrow. -->
+<Story name="Anchor point" parameters={{ controls: { include: ['name', 'width', 'variant', 'colour'] } }}>
+	{#snippet template(args, context)}
+		{@const anchor = getSymbolAnchor({ name: args.name, variant: args.variant, width: args.width })}
+		<div class="anchor-stage" style:width="{args.width}px" style:height="{args.width}px">
+			<Symbol
+				name={args.name}
+				width={args.width}
+				variant={args.variant}
+				colour={args.colour}
+				scheme={context.globals.scheme === 'dark' ? 'dark' : 'light'}
+			/>
+			<span class="anchor-dot" style:left="{anchor.x * 100}%" style:top="{anchor.y * 100}%"></span>
+		</div>
+	{/snippet}
+</Story>
+
 <!-- Checks getSymbol({ pixelRatio }): rasterised at width × pixelRatio, shown back at 1x. -->
 <Story name="Pixel ratio check" parameters={{ controls: { include: ['name', 'colour'] } }}>
 	{#snippet template(args, context)}
@@ -112,6 +129,18 @@
 	}
 	:global([data-scheme='dark']) :is(th, td) {
 		border-bottom-color: #2a3336;
+	}
+	.anchor-stage {
+		position: relative;
+		margin: 24px;
+	}
+	.anchor-dot {
+		position: absolute;
+		width: 4px;
+		height: 4px;
+		border-radius: 50%;
+		background: red;
+		transform: translate(-50%, -50%);
 	}
 	th[scope='row'] {
 		text-align: left;
