@@ -1,6 +1,6 @@
 {
 	"name": "@abcnews/components-dataviz",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"license": "MIT",
 	"private": false,
 	"publishConfig": {
