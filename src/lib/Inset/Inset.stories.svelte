@@ -30,7 +30,8 @@
 	const darkRed = '#FF667B';
 
 	/** Storybook's toolbar sets this global; the same value ends up on <html data-scheme>. */
-	const isDark = (context: { globals: Record<string, unknown> }) => context.globals.scheme === 'dark';
+	const isDark = (context: { globals: Record<string, unknown> }) =>
+		context.globals.scheme === 'dark';
 
 	const { Story } = defineMeta({
 		title: 'Components/Inset',
@@ -60,9 +61,9 @@
 			},
 			shape: {
 				control: 'inline-radio',
-				options: ['circle', 'rounded'],
+				options: ['circle', 'rounded', 'source'],
 				description:
-					'`circle` uses border-radius 100vw. `rounded` is a square with a size-based radius.'
+					"`circle` uses border-radius 100vw. `rounded` is a square with a size-based radius. `source` has the same corners but keeps the image's own aspect ratio, so it can be a rectangle: `size` is the width and the height follows the image."
 			},
 			colour: {
 				control: 'color',
@@ -115,7 +116,13 @@
 			<Inset {...args} />
 			<!-- After the inset so the dot stays visible on top of it -->
 			<span class="marker">
-				<Symbol name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+				<Symbol
+					name="circle"
+					variant="filled"
+					width={12}
+					colour={dark ? darkRed : red}
+					scheme={dark ? 'dark' : 'light'}
+				/>
 			</span>
 		</div>
 	</div>
@@ -126,7 +133,13 @@
 		<!-- No point wrapper: x / y place the inset against the stage -->
 		<Inset {...args} />
 		<span class="marker" style="left:{px(args.x)};top:{px(args.y)}">
-			<Symbol name="circle" variant="filled" width={12} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+			<Symbol
+				name="circle"
+				variant="filled"
+				width={12}
+				colour={dark ? darkRed : red}
+				scheme={dark ? 'dark' : 'light'}
+			/>
 		</span>
 	</div>
 {/snippet}
@@ -138,16 +151,15 @@
 				<div class="cell">
 					<code class="cell-label">{anchor}</code>
 					<div class="point">
-						<Inset
-								src={images[0]}
-								size={40}
-								shape="rounded"
-								{anchor}
-								offset={8}
-								loading="eager"
-							/>
+						<Inset src={images[0]} size={40} shape="rounded" {anchor} offset={8} loading="eager" />
 						<span class="marker">
-							<Symbol name="circle" variant="filled" width={8} colour={dark ? darkRed : red} scheme={dark ? 'dark' : 'light'} />
+							<Symbol
+								name="circle"
+								variant="filled"
+								width={8}
+								colour={dark ? darkRed : red}
+								scheme={dark ? 'dark' : 'light'}
+							/>
 						</span>
 					</div>
 				</div>
@@ -164,6 +176,7 @@
 					<th scope="col">Size</th>
 					<th scope="col">Circle</th>
 					<th scope="col">Rounded</th>
+					<th scope="col">Source</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -172,6 +185,7 @@
 						<td><code>{size}px</code></td>
 						<td><Inset src={images[size % 3]} {size} shape="circle" loading="eager" /></td>
 						<td><Inset src={images[size % 3]} {size} shape="rounded" loading="eager" /></td>
+						<td><Inset src={images[size % 3]} {size} shape="source" loading="eager" /></td>
 					</tr>
 				{/each}
 			</tbody>
@@ -241,6 +255,16 @@
 <Story
 	name="Rounded"
 	args={{ shape: 'rounded', src: images[1] }}
+	parameters={{ controls: { exclude: ['anchor', 'offset', 'x', 'y'] } }}
+>
+	{#snippet template(args, context)}
+		{@render playground(args, isDark(context))}
+	{/snippet}
+</Story>
+
+<Story
+	name="Source image"
+	args={{ shape: 'source', src: images[2], size: 140 }}
 	parameters={{ controls: { exclude: ['anchor', 'offset', 'x', 'y'] } }}
 >
 	{#snippet template(args, context)}

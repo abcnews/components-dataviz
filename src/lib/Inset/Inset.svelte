@@ -1,4 +1,4 @@
-<!-- Inset (Svelte 5): an image cropped to a circle or a rounded square, with a themed border.
+<!-- Inset (Svelte 5): an image cropped to a circle or a rounded square (or, with shape="source", a rounded rectangle that keeps the image's own aspect ratio), with a themed border.
      Corner radius follows the rendered width: <=40px 4px, <=50px 8px, >=72px 12px (51-71px stays 8px).
      <Inset src="/me.jpg" alt="Jo Smith" size={48} shape="circle" />
      Border: always 1px; white in light mode, black under a [data-scheme="dark"] ancestor (set by the consumer). Change the colour with the
@@ -20,8 +20,10 @@
 		/** Width and height. Number = px; strings are any CSS length, e.g. '100%' or '4rem' (default 48).
 		 *  Percentages only work when the inset is not anchored (`anchor`, `offset`, `x` or `y`). */
 		size?: number | string;
-		/** 'circle' (border-radius 100vw) or 'rounded' square whose radius depends on the size (default 'circle'). */
-		shape?: 'circle' | 'rounded';
+		/** 'circle' (border-radius 100vw), 'rounded' square whose radius depends on the size, or 'source': the
+		 *  same rounded corners but the frame takes the image's own aspect ratio, so it can be a rectangle.
+		 *  For 'source', `size` is the width and the height follows the image (default 'circle'). */
+		shape?: 'circle' | 'rounded' | 'source';
 		/** Border colour (overrides --image-border-colour and the light/dark default). Width is fixed at 1px. */
 		colour?: string;
 		/** CSS object-position, to choose which part of the image stays visible (default 'center'). */
@@ -73,7 +75,7 @@
 
 <Anchored {anchor} {offset} {x} {y}>
 	<span class="image {className}" style={inlineStyle} {...rest}>
-		<span class="frame" class:circle={shape === 'circle'}>
+		<span class="frame" class:circle={shape === 'circle'} class:source={shape === 'source'}>
 			<img
 				{src}
 				{alt}
@@ -130,10 +132,19 @@
 		border-radius: 100vw;
 	}
 
+	/* Source: no forced square, so the frame is as tall as the image is at this width. */
+	.frame.source {
+		aspect-ratio: auto;
+	}
+
 	img {
 		display: block;
 		width: 100%;
 		height: 100%;
+	}
+
+	.source img {
+		height: auto;
 	}
 
 	:global([data-scheme='dark']) .frame {
