@@ -1,6 +1,6 @@
 {
 	"name": "@abcnews/components-dataviz",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"license": "MIT",
 	"private": false,
 	"publishConfig": {
@@ -83,6 +83,7 @@
 	},
 	"dependencies": {
 		"@abcnews/components-builder": "^2.0.0",
-		"@abcnews/components-storylab": "^0.4.0",		"release-it": "^21.1.2"
+		"@abcnews/components-storylab": "^0.4.0",
+		"release-it": "^21.1.2"
 	}
 }
