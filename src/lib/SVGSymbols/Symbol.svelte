@@ -21,6 +21,7 @@
 		class: className
 	}: Props = $props();
 
+	// The artwork loads on demand, so this is a promise; the span keeps its place until it arrives.
 	const svg = $derived(getSymbol({ name, variant, width, scheme, colour }));
 </script>
 
@@ -30,7 +31,9 @@
 	aria-label={label}
 	aria-hidden={label ? undefined : true}
 >
-	{@html svg}
+	{#await svg then markup}
+		{@html markup}
+	{/await}
 </span>
 
 <style>

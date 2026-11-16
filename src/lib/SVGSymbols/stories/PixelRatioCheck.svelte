@@ -26,12 +26,14 @@
 	 * bitmap, so scaling it back down with a CSS transform shows what the map would draw.
 	 */
 	const rasterise =
-		(svg: string, size: number): Attachment<HTMLCanvasElement> =>
+		(svg: Promise<string>, size: number): Attachment<HTMLCanvasElement> =>
 		(canvas) => {
 			const image = new Image();
-			image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-			image
-				.decode()
+			svg
+				.then((markup) => {
+					image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+					return image.decode();
+				})
 				.then(() => canvas.getContext('2d')?.drawImage(image, 0, 0, size, size))
 				.catch((error) => console.error(JSON.stringify({ rasteriseFailed: String(error), size })));
 		};

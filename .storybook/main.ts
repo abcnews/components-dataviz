@@ -23,6 +23,8 @@ const config: StorybookConfig = {
 			allowedHosts: true
 		};
 		config.publicDir = 'public';
+		// getSymbol loads the SVGs from public/symbols here, not the ABC-hosted copy.
+		config.define = { ...config.define, __LOCAL_SYMBOLS__: 'true' };
 		return config;
 	}
 };

@@ -1,3 +1,21 @@
+// ─── Where the SVGs are served from ──────────────────────────────────────────
+// The SVGs live in `public/symbols` and are fetched on demand, so they add nothing to the bundle.
+// Apps using this library always fetch the ABC-hosted copy, so they need no set-up. Only this
+// repo's Storybook reads the local folder, so unreleased artwork can be previewed.
+
+/** Where the uploaded copy of `public/symbols` lives. No trailing slash. */
+export const HOSTED_SYMBOLS_BASE_URL = 'https://www.abc.net.au/res/sites/news-projects/components-dataviz/symbols';
+
+/**
+ * Set to `true` by `.storybook/main.ts` (Vite `define`). It isn't defined anywhere else, so the
+ * published package, and the apps that bundle it, never see it. We can't use a "dev mode" flag
+ * here: that is also true while an app using this library runs its own dev server.
+ */
+declare const __LOCAL_SYMBOLS__: boolean | undefined;
+
+const SYMBOLS_BASE_URL =
+	typeof __LOCAL_SYMBOLS__ !== 'undefined' && __LOCAL_SYMBOLS__ ? '/symbols' : HOSTED_SYMBOLS_BASE_URL;
+
 const SOURCE_COLOUR = '#1E5AEB';
 const SOURCE_STROKE = '"white"';
 
@@ -10,12 +28,21 @@ const STROKE_BY_SCHEME = { light: 'white', dark: 'black' } as const;
 
 const SHAPE_SELECTOR = 'path, circle, ellipse, rect, line, polyline, polygon';
 
-// Raw SVG strings keyed by path, e.g. "./svg/Size=1, Style=Fill-1.svg".
-const symbols = import.meta.glob<string>('./svg/*.svg', {
-	query: '?raw',
-	import: 'default',
-	eager: true
-});
+/** Raw SVG strings already requested, keyed by file name, so a symbol used many times loads once. */
+const loading = new Map<string, Promise<string>>();
+
+const loadSource = (fileName: string) => {
+	const existing = loading.get(fileName);
+	if (existing) return existing;
+	const source = fetch(`${SYMBOLS_BASE_URL}/${encodeURIComponent(fileName)}`).then((response) => {
+		if (!response.ok) throw new Error(`Symbol not found: ${fileName} (${response.status})`);
+		return response.text();
+	});
+	loading.set(fileName, source);
+	// A failed load (e.g. offline) shouldn't stick: let the next call retry.
+	source.catch(() => loading.delete(fileName));
+	return source;
+};
 
 // Position in this list is the file number (0–19).
 export const SYMBOL_NAMES = [
@@ -51,7 +78,10 @@ export type SymbolName = (typeof SYMBOL_NAMES)[number];
  * from its SVG: re-check these if the artwork changes. Symbols not listed here are centred.
  */
 const TIPS: Partial<
-	Record<SymbolName, Record<'fill' | 'stroke', Record<SizeKey, readonly [number, number, number, number]>>>
+	Record<
+		SymbolName,
+		Record<'fill' | 'stroke', Record<SizeKey, readonly [number, number, number, number]>>
+	>
 > = {
 	pin: {
 		fill: {
@@ -107,11 +137,14 @@ const closestSize = (width: number) =>
 		Math.abs(SIZES[size] - width) < Math.abs(SIZES[best] - width) ? size : best
 	);
 
-// Index 0 is "Fill" / "Stroke"; 1–19 are "Fill-1" … "Fill-19".
-const filePath = (index: number, variant: 'fill' | 'stroke', size: SizeKey) => {
-	const style = variant === 'stroke' ? 'Stroke' : 'Fill';
-	const suffix = index === 0 ? '' : `-${index}`;
-	return `./svg/Size=${size}, Style=${style}${suffix}.svg`;
+/**
+ * The file names are kept as exported from Figma ('Size=3, Style=Fill-1.svg') so a new export can
+ * be dropped straight into public/symbols. Index 0 is the unnumbered "Fill" / "Stroke" file;
+ * 1–19 are "Fill-1" … "Fill-19".
+ */
+const symbolFileName = (index: number, variant: 'fill' | 'stroke', size: SizeKey) => {
+	const style = variant === 'fill' ? 'Fill' : 'Stroke';
+	return `Size=${size}, Style=${style}${index ? `-${index}` : ''}.svg`;
 };
 
 /**
@@ -138,22 +171,21 @@ export function getSymbolAnchor({
 }
 
 /**
- * Get a symbol as an SVG string.
+ * Get a symbol as an SVG string. Async because each symbol's artwork is fetched from
+ * SYMBOLS_BASE_URL the first time it is asked for.
  */
-export function getSymbol({
+export async function getSymbol({
 	name,
 	variant = 'fill',
 	width = 16,
 	scheme = 'light',
 	colour = SOURCE_COLOUR,
 	pixelRatio
-}: GetSymbolOptions): string {
+}: GetSymbolOptions): Promise<string> {
 	const index = SYMBOL_NAMES.indexOf(name);
 	if (index === -1) throw new Error(`Unknown symbol: ${name}`);
 
-	const path = filePath(index, variant, closestSize(width));
-	const source = symbols[path];
-	if (!source) throw new Error(`Symbol not found: ${path}`);
+	const source = await loadSource(symbolFileName(index, variant, closestSize(width)));
 
 	// Recolour first, as plain strings, then parse for the sizing.
 	const recoloured = source
