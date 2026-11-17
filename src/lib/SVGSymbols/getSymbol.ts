@@ -4,7 +4,8 @@
 // repo's Storybook reads the local folder, so unreleased artwork can be previewed.
 
 /** Where the uploaded copy of `public/symbols` lives. No trailing slash. */
-export const HOSTED_SYMBOLS_BASE_URL = 'https://www.abc.net.au/res/sites/news-projects/components-dataviz/symbols';
+export const HOSTED_SYMBOLS_BASE_URL =
+	'https://www.abc.net.au/res/sites/news-projects/abcnewscomponents-dataviz/0.0.9/symbols';
 
 /**
  * Set to `true` by `.storybook/main.ts` (Vite `define`). It isn't defined anywhere else, so the
@@ -14,7 +15,9 @@ export const HOSTED_SYMBOLS_BASE_URL = 'https://www.abc.net.au/res/sites/news-pr
 declare const __LOCAL_SYMBOLS__: boolean | undefined;
 
 const SYMBOLS_BASE_URL =
-	typeof __LOCAL_SYMBOLS__ !== 'undefined' && __LOCAL_SYMBOLS__ ? '/symbols' : HOSTED_SYMBOLS_BASE_URL;
+	typeof __LOCAL_SYMBOLS__ !== 'undefined' && __LOCAL_SYMBOLS__
+		? '/symbols'
+		: HOSTED_SYMBOLS_BASE_URL;
 
 const SOURCE_COLOUR = '#1E5AEB';
 const SOURCE_STROKE = '"white"';
