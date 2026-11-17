@@ -8,6 +8,7 @@ export { getSymbol, getSymbolAnchor, SYMBOL_NAMES } from './SVGSymbols/getSymbol
 export { default as SymbolPicker } from './SymbolPicker/SymbolPicker.svelte';
 export type { SymbolPickerShow } from './SymbolPicker/SymbolPicker.svelte';
 export { default as ColourPicker } from './ColourPicker/ColourPicker.svelte';
+export { default as ModularLegend } from './ModularLegend/ModularLegend.svelte';
 export type { Palette } from './Colours/colours';
 export { default as Colours } from './Colours/Colours.svelte';
 export { colours, COLOUR_NAMES, resolveColour } from './Colours/colours';
