@@ -1,44 +1,70 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import {
+		SequentialPalette,
+		DivergentPalette,
+		getSequentialSteppedPalette,
+		getSequentialContinuousPaletteInterpolator,
+		getDivergentSteppedPalette,
+		getDivergentContinuousPaletteInterpolator,
+		getNamedColour
+	} from '@abcnews/palette';
 	import ModularLegend from './ModularLegend.svelte';
 
+	const low = getNamedColour('sd-0-l');
+
+	// Sequential red, 4 steps: the zero colour plus four reds
+	const reds = getSequentialSteppedPalette(4, SequentialPalette.Red);
+
+	// Neutral below 25, then the sequential red palette
 	const discrete = [
-		{ text: '0–20', colour: '#fde9c9' },
-		{ text: '20–40', colour: '#f9c27e' },
-		{ text: '40–60', colour: '#f08a4b' },
-		{ text: '60–80', colour: '#d1495b' },
-		{ text: '80+', colour: '#7a1f3d' }
+		{ text: '<25', colour: reds[0] },
+		{ text: '25–50', colour: reds[1] },
+		{ text: '50–75', colour: reds[2] },
+		{ text: '75–100', colour: reds[3] },
+		{ text: '100+', colour: reds[4] }
 	];
 
-	// 5° buckets from 20–45: five swatches, four boundary values
-	const temperature = [
-		{ colour: '#4575b4' },
-		{ colour: '#91bfdb' },
-		{ colour: '#fee090' },
-		{ colour: '#fc8d59' },
-		{ colour: '#d73027' }
-	];
+	// 5° buckets: grey for <25, then four reds up to 40, with boundary values 25°–40°.
+	// Open-ended at both ends, so use with continues="both".
+	const temperature = [{ colour: low }, ...reds.slice(1).map((colour) => ({ colour }))];
 	const temperatureTicks = ['25°', '30°', '35°', '40°'];
 
+	// Sequential continuous: the full blue ramp across 0–100
+	const blue = getSequentialContinuousPaletteInterpolator(SequentialPalette.Blue);
 	const continuous = {
-		steps: [
-			{ colour: '#fde725', pct: '0%' },
-			{ colour: '#35b779', pct: '50%' },
-			{ colour: '#440154', pct: '100%' }
-		],
+		steps: Array.from({ length: 9 }, (_, i) => ({ colour: blue(i / 8), pct: `${(i * 100) / 8}%` })),
 		ticks: ['0', '25', '50', '75', '100']
 	};
 
-	const hatch = 'repeating-linear-gradient(45deg, #8a8a8a 0 2px, transparent 2px 5px)';
+	// Diverging discrete: six buckets either side of zero, open-ended at both ends.
+	// The library always includes a neutral middle colour, so it's dropped here.
+	// Boundary labels sit between swatches, with 0 at the centre.
+	const diverging = getDivergentSteppedPalette(3, DivergentPalette.RedBlue)
+		.filter((_, i) => i !== 3)
+		.map((colour) => ({ colour }));
+	const divergingTicks = ['−10', '−5', '0', '+5', '+10'];
 
-	const noData = [{ text: 'No data', colour: '#e4e4e4' }];
-	const noDataHatched = [{ text: 'Not applicable', colour: '#f2f2f2', image: hatch }];
+	// Diverging continuous: dark blue → light centre → dark red
+	const redBlue = getDivergentContinuousPaletteInterpolator(DivergentPalette.RedBlue);
+	const divergingContinuous = {
+		steps: Array.from({ length: 20 }, (_, i) => ({
+			colour: redBlue(i / 19),
+			pct: `${(i * 100) / 19}%`
+		})),
+		ticks: ['−10', '−5', '0', '+5', '+10']
+	};
+
+	const hatch = `repeating-linear-gradient(45deg, ${getNamedColour('grey-l')} 0 2px, transparent 2px 5px)`;
+
+	const noData = [{ text: 'No data', colour: low, image: hatch }];
+	const notApplicable = [{ text: 'Not applicable', colour: getNamedColour('taupe-l') }];
 
 	const longLabels = [
-		{ text: 'Extremely long category label that cannot possibly fit', colour: '#c6dbef' },
-		{ text: 'Another verbose description of this bucket', colour: '#6baed6' },
-		{ text: 'Supercalifragilisticexpialidocious', colour: '#3182bd' },
-		{ text: 'Short', colour: '#08519c' }
+		{ text: 'Extremely long category label that cannot possibly fit', colour: reds[0] },
+		{ text: 'Another verbose description of this bucket', colour: reds[1] },
+		{ text: 'Supercalifragilisticexpialidocious', colour: reds[2] },
+		{ text: 'Short', colour: reds[4] }
 	];
 
 	const widths = [240, 400, 640];
@@ -71,6 +97,16 @@
 				control: 'object',
 				description:
 					'Visually separated items (e.g. "No data"), equal in width to the widest. Accept an optional `image` (any CSS image) layered over `colour`.'
+			},
+			startAnnotation: {
+				control: 'text',
+				description:
+					'Short annotation under the bottom left of the legend, e.g. "Cooler". Inherits text colour from the page.'
+			},
+			endAnnotation: {
+				control: 'text',
+				description:
+					'Short annotation under the bottom right of the legend, e.g. "Hotter". Inherits text colour from the page.'
 			},
 			continues: {
 				control: 'inline-radio',
@@ -150,11 +186,11 @@
 				</div>
 			</div>
 			<div class="row">
-				<code>Multiple other, with image</code>
+				<code>Multiple other</code>
 				<div class="box">
 					<ModularLegend
 						continuousLegend={continuous}
-						otherLegends={[...noData, ...noDataHatched]}
+						otherLegends={[...noData, ...notApplicable]}
 					/>
 				</div>
 			</div>
@@ -178,6 +214,45 @@
 				<code>Continuous, continues start</code>
 				<div class="box">
 					<ModularLegend continuousLegend={continuous} continues="start" />
+				</div>
+			</div>
+			<div class="row">
+				<code>Diverging, between ticks</code>
+				<div class="box">
+					<ModularLegend
+						discreteLegends={diverging}
+						betweenTicks={divergingTicks}
+						continues="both"
+					/>
+				</div>
+			</div>
+			<div class="row">
+				<code>Diverging, continuous</code>
+				<div class="box">
+					<ModularLegend continuousLegend={divergingContinuous} continues="both" />
+				</div>
+			</div>
+			<div class="row">
+				<code>Annotations</code>
+				<div class="box">
+					<ModularLegend
+						discreteLegends={temperature}
+						betweenTicks={temperatureTicks}
+						continues="both"
+						startAnnotation="Cooler"
+						endAnnotation="Hotter"
+					/>
+				</div>
+			</div>
+			<div class="row">
+				<code>Annotations + other</code>
+				<div class="box">
+					<ModularLegend
+						continuousLegend={continuous}
+						otherLegends={noData}
+						startAnnotation="Cooler"
+						endAnnotation="Hotter"
+					/>
 				</div>
 			</div>
 			<div class="row">
@@ -224,8 +299,8 @@
 </Story>
 
 <Story
-	name="Other with image"
-	args={{ discreteLegends: discrete, otherLegends: [...noData, ...noDataHatched] }}
+	name="Multiple other"
+	args={{ discreteLegends: discrete, otherLegends: [...noData, ...notApplicable] }}
 >
 	{#snippet template(args)}
 		{@render frame(args, 560)}
@@ -257,6 +332,58 @@
 <Story
 	name="Continues (continuous)"
 	args={{ discreteLegends: undefined, continuousLegend: continuous, continues: 'both' }}
+>
+	{#snippet template(args)}
+		{@render frame(args, 480)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Diverging"
+	args={{ discreteLegends: diverging, betweenTicks: divergingTicks, continues: 'both' }}
+>
+	{#snippet template(args)}
+		{@render frame(args, 480)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Diverging (continuous)"
+	args={{
+		discreteLegends: undefined,
+		continuousLegend: divergingContinuous,
+		continues: 'both'
+	}}
+>
+	{#snippet template(args)}
+		{@render frame(args, 480)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Annotations"
+	args={{
+		discreteLegends: temperature,
+		betweenTicks: temperatureTicks,
+		continues: 'both',
+		startAnnotation: 'Cooler',
+		endAnnotation: 'Hotter'
+	}}
+>
+	{#snippet template(args)}
+		{@render frame(args, 480)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Annotations (continuous, with other)"
+	args={{
+		discreteLegends: undefined,
+		continuousLegend: continuous,
+		otherLegends: noData,
+		startAnnotation: 'Cooler',
+		endAnnotation: 'Hotter'
+	}}
 >
 	{#snippet template(args)}
 		{@render frame(args, 480)}
@@ -309,11 +436,8 @@
 	.surface {
 		display: inline-block;
 		background: #fff;
+		color: #000;
 		padding: 16px;
-	}
-	:global([data-scheme='dark']) .surface {
-		background: #161c1e;
-		color: #e8eef0;
 	}
 	.rows {
 		display: flex;

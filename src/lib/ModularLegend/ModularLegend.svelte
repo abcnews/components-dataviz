@@ -39,6 +39,10 @@
 		 * `start` points left, `end` points right. Doesn't affect `otherLegends`.
 		 */
 		continues?: 'start' | 'end' | 'both';
+		/** Short annotation under the bottom left of the legend, e.g. "Cooler". */
+		startAnnotation?: string;
+		/** Short annotation under the bottom right of the legend, e.g. "Hotter". */
+		endAnnotation?: string;
 	};
 
 	let {
@@ -46,7 +50,9 @@
 		continuousLegend,
 		betweenTicks,
 		otherLegends = [],
-		continues
+		continues,
+		startAnnotation,
+		endAnnotation
 	}: Props = $props();
 
 	const count = $derived(discreteLegends?.length ?? 0);
@@ -71,36 +77,45 @@
 			.join(' ')
 	);
 
+	/**
+	 * Each swatch is at most --swatch-max wide (45px, or 60px from 700px up; override with
+	 * --legend-swatch-max)
+	 */
+	const mainColumn = $derived(
+		discreteLegends
+			? `minmax(0, calc(${count} * var(--swatch-max) + ${Math.max(count - 1, 0)} * var(--segment-gap)))`
+			: 'minmax(0, 1fr)'
+	);
+
 	const visibleBetweenTicks = $derived(betweenTicks?.slice(0, Math.max(count - 1, 0)));
 </script>
 
 <div
 	class="legend"
-	style:grid-template-columns={otherLegends.length
-		? 'minmax(0, 1fr) max-content'
-		: 'minmax(0, 1fr)'}
+	style:grid-template-columns={otherLegends.length ? `${mainColumn} max-content` : mainColumn}
 >
-	<!-- Main legend (discrete or continuous): fills the remaining width -->
+	<!-- Class / boundary labels + track (discrete or continuous): fills the remaining width -->
 	<div
-		class="legend__ticks"
-		class:legend__ticks-continuous={continuousLegend}
+		class="legend__labels"
+		class:legend__labels-continuous={continuousLegend}
 		style:grid-template-columns={discreteLegends
 			? visibleBetweenTicks
 				? betweenColumns
 				: equalColumns
 			: undefined}
+		style:column-gap={discreteLegends && !visibleBetweenTicks ? 'var(--segment-gap)' : undefined}
 	>
 		{#if discreteLegends && visibleBetweenTicks}
 			{#each visibleBetweenTicks as tick, i}
-				<div class="legend__textitem" style:grid-column={i + 2} title={tick}>{tick}</div>
+				<div class="legend__label" style:grid-column={i + 2} title={tick}>{tick}</div>
 			{/each}
 		{:else if discreteLegends}
 			{#each discreteLegends as { text }}
-				<div class="legend__textitem" title={text}>{text}</div>
+				<div class="legend__label" title={text}>{text}</div>
 			{/each}
 		{:else if continuousLegend}
 			{#each continuousLegend.ticks as tick}
-				<div class="legend__textitem" title={tick}>{tick}</div>
+				<div class="legend__label" title={tick}>{tick}</div>
 			{/each}
 		{/if}
 	</div>
@@ -119,11 +134,23 @@
 		{/if}
 	</div>
 
+	<!-- Scale context labels: bottom left and right, aligned to the main track -->
+	{#if startAnnotation || endAnnotation}
+		<div class="legend__context-labels">
+			{#if startAnnotation}
+				<span class="legend__context-label">{startAnnotation}</span>
+			{/if}
+			{#if endAnnotation}
+				<span class="legend__context-label legend__context-label-end">{endAnnotation}</span>
+			{/if}
+		</div>
+	{/if}
+
 	<!-- Other legends: sized to the widest one, then all equal -->
 	{#if otherLegends.length}
 		<div class="legend__others">
 			{#each otherLegends as { text, colour, image }, i}
-				<div class="legend__textitem legend__textitem-other" style:grid-column={i + 1}>{text}</div>
+				<div class="legend__label legend__label-other" style:grid-column={i + 1}>{text}</div>
 				<div
 					class="legend__trackitem legend__trackitem-other"
 					style:grid-column={i + 1}
@@ -140,23 +167,30 @@
 		display: grid;
 		grid-template-rows: auto var(--legend-track-height, 0.75rem);
 		column-gap: var(--legend-gap, 1.5rem);
-		row-gap: 0.25rem;
+		--legend-row-gap: calc(0.25rem - 2px);
+		--swatch-max: var(--legend-swatch-max, 45px);
+		--segment-gap: var(--legend-segment-gap, 1px);
+		row-gap: var(--legend-row-gap);
 		width: 100%;
+		/* Text colour always comes from the page, so light and dark mode just work */
+		color: inherit;
 		font-size: 0.75rem;
 		line-height: 1.2;
 	}
 
-	/* Main ticks + track share the first column, and the same inner grid */
-	.legend__ticks,
+	/* Main labels + track share the first column, and the same inner grid */
+	.legend__labels,
 	.legend__track {
 		display: grid;
 		grid-column: 1;
 	}
-	.legend__ticks {
+	.legend__labels {
 		grid-row: 1;
 	}
 	.legend__track {
 		grid-row: 2;
+		/* Gap between swatches; the page shows through */
+		column-gap: var(--segment-gap);
 		/* Clips the first and last swatch (or the gradient) to rounded ends */
 		overflow: hidden;
 		border-radius: var(--legend-radius, 4px);
@@ -212,32 +246,30 @@
 		border-radius: 0;
 	}
 
-	/* Continuous: first and last tick sit on the edges, the rest evenly between */
-	.legend__ticks-continuous {
+	/* Continuous: first and last label sit on the edges, the rest evenly between */
+	.legend__labels-continuous {
 		display: flex;
 		justify-content: space-between;
 		gap: 0.5rem;
 	}
 
-	.legend__textitem {
+	.legend__label {
 		min-width: 0;
-		padding-inline: 0.125rem;
-		text-align: center;
-		/* Aggressively clamp to two lines */
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		overflow: hidden;
-		overflow-wrap: anywhere;
+		font-size: 14px;
+		/*
+		 * Swatches are capped at 45px (60px on wider screens) and can shrink further, so labels can be wider than their column. Centre them
+		 * on it and let them spill equally to both sides rather than wrapping or clipping.
+		 */
+		display: flex;
+		justify-content: center;
+		white-space: nowrap;
 	}
-	.legend__ticks-continuous .legend__textitem {
+	.legend__labels-continuous .legend__label {
 		flex: 0 1 auto;
-		padding-inline: 0;
-		text-align: start;
+		justify-content: flex-start;
 	}
-	.legend__ticks-continuous .legend__textitem:last-child {
-		text-align: end;
+	.legend__labels-continuous .legend__label:last-child {
+		justify-content: flex-end;
 	}
 
 	/*
@@ -254,11 +286,52 @@
 		column-gap: var(--legend-gap, 1.5rem);
 	}
 
-	.legend__textitem-other {
+	.legend__label-other {
 		grid-row: 1;
 		white-space: nowrap;
 		display: block;
-		overflow: visible;
+		text-align: center;
+	}
+
+	/*
+	 * Third row is implicit, so it only exists when there are scale context labels.
+	 * 8px below the track in total (the row gap supplies part of it).
+	 */
+	.legend__context-labels {
+		grid-column: 1;
+		grid-row: 3;
+		display: flex;
+		gap: 8px;
+		margin-top: calc(8px - var(--legend-row-gap));
+	}
+	.legend__context-label {
+		min-width: 0;
+		color: inherit;
+		text-wrap-style: balance;
+		font-feature-settings: 'ss01' on;
+		font-family: 'ABC Sans Nova', sans-serif;
+		font-size: 12px;
+		font-style: normal;
+		font-weight: 400;
+		line-height: 100%;
+		letter-spacing: 0.03em;
+	}
+	.legend__context-label-end {
+		margin-inline-start: auto;
+		text-align: end;
+	}
+
+	/* Wider screens: swatches up to 60px, class/boundary labels 16px, scale context labels 14px */
+	@media (min-width: 700px) {
+		.legend {
+			--swatch-max: var(--legend-swatch-max, 60px);
+		}
+		.legend__label {
+			font-size: 16px;
+		}
+		.legend__context-label {
+			font-size: 14px;
+		}
 	}
 
 	.legend__trackitem {
