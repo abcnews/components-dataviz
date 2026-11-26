@@ -9,6 +9,7 @@
 		getDivergentContinuousPaletteInterpolator,
 		getNamedColour
 	} from '@abcnews/palette';
+	import type { ComponentProps } from 'svelte';
 	import ModularLegend from './ModularLegend.svelte';
 
 	const low = getNamedColour('sd-0-l');
@@ -113,6 +114,12 @@
 				options: [undefined, 'start', 'end', 'both'],
 				description:
 					'Turns the main track\'s ends into arrows to show values carry on beyond the legend. `start` points left, `end` points right. Make sure the end labels still say so, e.g. "80+".'
+			},
+			size: {
+				control: 'inline-radio',
+				options: [undefined, 'small', 'large'],
+				description:
+					'Forces the small or large layout (swatch width and label sizes). When unset, switches to large at 700px viewport width. Set it inside iframes, where the viewport is not the page.'
 			}
 		}
 	});
@@ -135,6 +142,21 @@
 					<code>{width}px</code>
 					<div class="box" style="width:{width}px">
 						<ModularLegend {...args} />
+					</div>
+				</div>
+			{/each}
+		</div>
+	</div>
+{/snippet}
+
+{#snippet sizeRows(args: ComponentProps<typeof ModularLegend>)}
+	<div class="surface">
+		<div class="rows">
+			{#each ['small', 'large'] as const as size (size)}
+				<div class="row">
+					<code>size="{size}"</code>
+					<div class="box">
+						<ModularLegend {...args} {size} />
 					</div>
 				</div>
 			{/each}
@@ -423,6 +445,22 @@
 >
 	{#snippet template(args)}
 		{@render widthRows(args)}
+	{/snippet}
+</Story>
+
+<Story
+	name="Sizes"
+	args={{
+		discreteLegends: temperature,
+		betweenTicks: temperatureTicks,
+		continues: 'both',
+		startAnnotation: 'Cooler',
+		endAnnotation: 'Hotter'
+	}}
+	parameters={{ controls: { disable: true } }}
+>
+	{#snippet template(args)}
+		{@render sizeRows(args)}
 	{/snippet}
 </Story>
 

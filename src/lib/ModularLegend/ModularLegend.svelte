@@ -43,6 +43,11 @@
 		startAnnotation?: string;
 		/** Short annotation under the bottom right of the legend, e.g. "Hotter". */
 		endAnnotation?: string;
+		/**
+		 * Forces the small or large layout. When unset, switches to large at 700px viewport width.
+		 * Set it when the viewport doesn't reflect the page, e.g. inside an iframe.
+		 */
+		size?: 'small' | 'large';
 	};
 
 	let {
@@ -52,7 +57,8 @@
 		otherLegends = [],
 		continues,
 		startAnnotation,
-		endAnnotation
+		endAnnotation,
+		size
 	}: Props = $props();
 
 	const count = $derived(discreteLegends?.length ?? 0);
@@ -78,7 +84,7 @@
 	);
 
 	/**
-	 * Each swatch is at most --swatch-max wide (45px, or 60px from 700px up; override with
+	 * Each swatch is at most --swatch-max wide (45px small, 60px large; override with
 	 * --legend-swatch-max)
 	 */
 	const mainColumn = $derived(
@@ -92,6 +98,7 @@
 
 <div
 	class="legend"
+	data-size={size}
 	style:grid-template-columns={otherLegends.length ? `${mainColumn} max-content` : mainColumn}
 >
 	<!-- Class / boundary labels + track (discrete or continuous): fills the remaining width -->
@@ -168,7 +175,10 @@
 		grid-template-rows: auto var(--legend-track-height, 0.75rem);
 		column-gap: var(--legend-gap, 1.5rem);
 		--legend-row-gap: calc(0.25rem - 2px);
+		/* Small layout by default; the large layout overrides these three below */
 		--swatch-max: var(--legend-swatch-max, 45px);
+		--label-font-size: 14px;
+		--context-label-font-size: 12px;
 		--segment-gap: var(--legend-segment-gap, 1px);
 		row-gap: var(--legend-row-gap);
 		width: 100%;
@@ -255,9 +265,9 @@
 
 	.legend__label {
 		min-width: 0;
-		font-size: 14px;
+		font-size: var(--label-font-size);
 		/*
-		 * Swatches are capped at 45px (60px on wider screens) and can shrink further, so labels can be wider than their column. Centre them
+		 * Swatches are capped at 45px (60px in the large layout) and can shrink further, so labels can be wider than their column. Centre them
 		 * on it and let them spill equally to both sides rather than wrapping or clipping.
 		 */
 		display: flex;
@@ -310,7 +320,7 @@
 		text-wrap-style: balance;
 		font-feature-settings: 'ss01' on;
 		font-family: 'ABC Sans Nova', sans-serif;
-		font-size: 12px;
+		font-size: var(--context-label-font-size);
 		font-style: normal;
 		font-weight: 400;
 		line-height: 100%;
@@ -321,16 +331,20 @@
 		text-align: end;
 	}
 
-	/* Wider screens: swatches up to 60px, class/boundary labels 16px, scale context labels 14px */
+	/*
+	 * Large layout: swatches up to 60px, class/boundary labels 16px, scale context labels 14px.
+	 * Forced with size="large", or picked by viewport width when `size` is unset.
+	 */
+	.legend[data-size='large'] {
+		--swatch-max: var(--legend-swatch-max, 60px);
+		--label-font-size: 16px;
+		--context-label-font-size: 14px;
+	}
 	@media (min-width: 700px) {
-		.legend {
+		.legend:not([data-size]) {
 			--swatch-max: var(--legend-swatch-max, 60px);
-		}
-		.legend__label {
-			font-size: 16px;
-		}
-		.legend__context-label {
-			font-size: 14px;
+			--label-font-size: 16px;
+			--context-label-font-size: 14px;
 		}
 	}
 
